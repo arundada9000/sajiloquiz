@@ -1,13 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { questions } from '../data/questions';
-import { config } from '../data/config';
+import { useData } from '../context/DataContext';
 import { useQuiz } from '../context/QuizContext';
-import { Trash2, Trophy, Target, ListChecks } from 'lucide-react';
+import { Trash2, Trophy, Target, ListChecks, Settings } from 'lucide-react';
 import { sounds } from '../utils/sounds';
 
 export default function GridPage() {
+    const { appConfig: config, allQuestions: questions } = useData();
     const { visitedIds, resetProgress } = useQuiz();
+    const navigate = useNavigate();
 
     const totalQuestions = questions.length;
     const completedCount = visitedIds.length;
@@ -21,11 +22,10 @@ export default function GridPage() {
                 variants={{ hidden: { opacity: 0, scale: 0.8 }, show: { opacity: 1, scale: 1 } }}
                 className="w-full"
             >
-                <Link
-                    to={isVisited ? '#' : `/question/${q.id}`}
+                <div
                     className={`
                 aspect-square flex items-center justify-center rounded-xl font-bold w-full
-                transition-all duration-300 border relative overflow-hidden group
+                transition-all duration-300 border relative overflow-hidden group cursor-pointer
                 ${isVisited
                             ? 'bg-red-900/40 border-red-800/50 text-gray-500 cursor-not-allowed grayscale-[0.8]'
                             : 'bg-white/10 border-white/20 text-white backdrop-blur-md hover:bg-white/20 hover:border-purple-500 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:scale-105'
@@ -33,8 +33,13 @@ export default function GridPage() {
             `}
                     style={{ fontSize: config.fonts.gridNumber }}
                     onClick={(e) => {
-                        if (isVisited) e.preventDefault();
-                        if (!isVisited) sounds.select();
+                        // Allow navigation if NOT visited OR if Alt key is held
+                        if (!isVisited || e.altKey) {
+                            e.preventDefault(); // Stop any default behavior
+                            if (isVisited) sounds.click();
+                            else sounds.select();
+                            navigate(`/question/${q.id}`);
+                        }
                     }}
                     onMouseEnter={() => !isVisited && sounds.click()}
                 >
@@ -48,7 +53,7 @@ export default function GridPage() {
                         </div>
                     )}
                     <span className="relative z-10 drop-shadow-md">{q.id}</span>
-                </Link>
+                </div>
             </motion.div>
         );
     };
@@ -61,7 +66,7 @@ export default function GridPage() {
                 className="text-center mb-6 md:mb-8 relative z-10"
             >
                 <h1 className="text-4xl md:text-5xl font-bold mb-2 title-gradient">{config.appName}</h1>
-                <p className="text-gray-400 text-xs md:text-sm tracking-widest uppercase">Select a question to begin</p>
+                <p className="text-gray-400 text-xs md:text-sm tracking-widest uppercase">Select a question to begin • <span className="text-gray-600">Alt+Click to re-open visited</span></p>
             </motion.div>
 
             {/* Stats Dashboard */}
@@ -160,21 +165,24 @@ export default function GridPage() {
                 </motion.div>
             )}
 
-            <motion.button
-                onClick={() => {
-                    sounds.select();
-                    if (confirm('Are you sure you want to reset all progress?')) {
-                        resetProgress();
-                    }
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="mt-12 btn-secondary flex items-center gap-2 group border-red-500/30 text-red-400 hover:bg-red-950/30 hover:text-red-300"
-            >
-                <Trash2 size={18} />
-                Reset Progress
-            </motion.button>
+            <div className="mt-12 flex gap-4">
+                <Link to="/admin" className="btn-secondary flex items-center gap-2 border-white/10 text-gray-400 hover:text-white hover:bg-white/10">
+                    <Settings size={18} />
+                    Admin Panel
+                </Link>
+                <motion.button
+                    onClick={() => {
+                        sounds.select();
+                        if (confirm('Are you sure you want to reset all progress?')) {
+                            resetProgress();
+                        }
+                    }}
+                    className="btn-secondary flex items-center gap-2 group border-red-500/30 text-red-400 hover:bg-red-950/30 hover:text-red-300"
+                >
+                    <Trash2 size={18} />
+                    Reset Progress
+                </motion.button>
+            </div>
         </div>
     );
 }

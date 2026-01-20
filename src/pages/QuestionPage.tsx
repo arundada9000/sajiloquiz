@@ -2,14 +2,14 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Eye, EyeOff, Timer, Play, Pause, RotateCcw, Plus, Minus, ArrowRight } from 'lucide-react';
-import { questions } from '../data/questions';
-import { config } from '../data/config';
+import { useData } from '../context/DataContext';
 import { useQuiz } from '../context/QuizContext';
 import { sounds } from '../utils/sounds';
 
 export default function QuestionPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { appConfig: config, allQuestions: questions } = useData();
     const questionId = Number(id);
     const question = questions.find(q => q.id === questionId);
 
@@ -23,10 +23,22 @@ export default function QuestionPage() {
     const [showAnswer, setShowAnswer] = useState(false);
     const { markAsVisited } = useQuiz();
 
+    // Dynamic Font Scaling
+    const [scale, setScale] = useState(1);
+
     // Timer State
     const [timeLeft, setTimeLeft] = useState(config.timer.defaultDuration);
-    const [isActive, setIsActive] = useState(config.timer.autoStartOnOpen); // Config: Auto-start on load
+    const [isActive, setIsActive] = useState(config.timer.autoStartOnOpen);
 
+    useEffect(() => {
+        // Reset state when question changes
+        setShowAnswer(false);
+        setScale(1);
+        setTimeLeft(config.timer.defaultDuration);
+        setIsActive(config.timer.autoStartOnOpen);
+    }, [questionId, config.timer.defaultDuration, config.timer.autoStartOnOpen]);
+
+    // Timer Logic
     useEffect(() => {
         let interval: any = null;
         if (isActive && timeLeft > 0) {
@@ -48,6 +60,7 @@ export default function QuestionPage() {
     }, [question, markAsVisited]);
 
 
+    // Handlers
     const handleBack = useCallback(() => {
         sounds.back();
         navigate('/');
@@ -56,6 +69,7 @@ export default function QuestionPage() {
     const handleToggleAnswer = useCallback(() => {
         if (!showAnswer) {
             sounds.reveal();
+            setIsActive(false); // Stop timer on reveal
         } else {
             sounds.click();
         }
@@ -68,13 +82,18 @@ export default function QuestionPage() {
         if (config.timer.autoStartOnPass) {
             setIsActive(true);
         } else {
-            setIsActive(false); // Stop if config says don't auto-start
+            setIsActive(false);
         }
-    }, []);
+    }, [config.timer.passDuration, config.timer.autoStartOnPass]);
 
     // Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Font Scaling
+            if (e.key === ']' || e.key === '=' || e.key === '+') setScale(s => Math.min(s + 0.1, 3));
+            if (e.key === '[' || e.key === '-') setScale(s => Math.max(s - 0.1, 0.5));
+            if (e.key === '0') setScale(1);
+
             if (e.code === 'Space') {
                 e.preventDefault();
                 handleToggleAnswer();
@@ -82,10 +101,17 @@ export default function QuestionPage() {
             if (e.code === 'Escape') {
                 handleBack();
             }
+
+            // Timer Shortcuts
+            if (e.key.toLowerCase() === 't') setIsActive(prev => !prev);
+            if (e.key.toLowerCase() === 'r') {
+                setTimeLeft(config.timer.defaultDuration);
+                setIsActive(false);
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleBack, handleToggleAnswer]);
+    }, [handleBack, handleToggleAnswer, config.timer.defaultDuration]);
 
 
     if (!question) return null;
@@ -117,30 +143,63 @@ export default function QuestionPage() {
                         <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-sm mb-6 text-purple-300 border border-white/10 uppercase tracking-wider">
                             Question {question.id}
                         </span>
-                        <h2 className="font-bold leading-tight mb-8" style={{ fontSize: config.fonts.questionTitle }}>
-                            {question.text}
-                        </h2>
                     </div>
 
-                    <div className="flex flex-col items-start gap-8">
-                        <AnimatePresence mode="wait">
-                            {showAnswer ? (
-                                <motion.div
-                                    key="answer"
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="w-full"
-                                >
-                                    <div className="p-8 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 w-full">
-                                        <p className="text-sm text-emerald-400 uppercase tracking-widest mb-2 font-bold">Answer</p>
-                                        <p className="font-medium text-emerald-100" style={{ fontSize: config.fonts.answerTitle }}>
-                                            {question.answer}
-                                        </p>
+                    <div className="flex flex-col items-start gap-8 relative group/scale">
+                        {/* Zoom Controls Overlay */}
+                        <div className="absolute top-[-3rem] right-0 flex gap-1 bg-black/30 backdrop-blur-sm p-1 rounded-lg opacity-0 group-hover/scale:opacity-100 transition-opacity z-10 text-white">
+                            <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="p-1 hover:bg-white/10 rounded" title="Smaller [-]"><Minus size={14} /></button>
+                            <span className="text-xs font-mono w-8 text-center pt-1">{Math.round(scale * 100)}%</span>
+                            <button onClick={() => setScale(s => Math.min(s + 0.1, 3))} className="p-1 hover:bg-white/10 rounded" title="Larger [+]"><Plus size={14} /></button>
+                            <button onClick={() => setScale(1)} className="p-1 hover:bg-white/10 rounded" title="Reset [0]"><RotateCcw size={14} /></button>
+                        </div>
+
+                        {/* Question Text & Media with Scale */}
+                        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', transition: 'transform 0.2s ease-out', width: '100%' }}>
+
+                            {/* Media Display */}
+                            {question.mediaType === 'image' && question.mediaUrl && (
+                                <div className="mb-6 rounded-xl overflow-hidden border-2 border-white/10 shadow-2xl relative group/img">
+                                    <img src={question.mediaUrl} alt="Question Attachment" className="max-h-[400px] w-auto object-contain bg-black/50" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity flex items-end p-4">
+                                        <span className="text-sm font-mono text-gray-300">Image Reference</span>
                                     </div>
-                                </motion.div>
-                            ) : null}
-                        </AnimatePresence>
+                                </div>
+                            )}
+
+                            {question.mediaType === 'audio' && question.mediaUrl && (
+                                <div className="mb-6 p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center gap-4">
+                                    <div className="p-3 bg-purple-500 rounded-full animate-pulse">
+                                        <div className="w-6 h-6 border-b-2 border-white rounded-full animate-spin" />
+                                        {/* Simple visualization icon placeholder */}
+                                    </div>
+                                    <audio controls src={question.mediaUrl} className="w-full h-10 opacity-80 hover:opacity-100 transition-opacity" />
+                                </div>
+                            )}
+
+                            <h2 className="font-bold leading-tight mb-8" style={{ fontSize: config.fonts.questionTitle }}>
+                                {question.text}
+                            </h2>
+
+                            <AnimatePresence mode="wait">
+                                {showAnswer ? (
+                                    <motion.div
+                                        key="answer"
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="w-full"
+                                    >
+                                        <div className="p-8 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 w-full">
+                                            <p className="text-sm text-emerald-400 uppercase tracking-widest mb-2 font-bold">Answer</p>
+                                            <p className="font-medium text-emerald-100" style={{ fontSize: config.fonts.answerTitle }}>
+                                                {question.answer}
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                ) : null}
+                            </AnimatePresence>
+                        </div>
 
                         <button
                             onClick={handleToggleAnswer}
@@ -193,6 +252,10 @@ export default function QuestionPage() {
                     >
                         <ArrowRight size={16} /> Pass (+{config.timer.passDuration}s)
                     </button>
+
+                    <div className="text-[10px] text-gray-600 text-center font-mono mt-4">
+                        [T] Timer • [R] Reset • [-/+] Zoom • [0] Reset Zoom
+                    </div>
 
                 </div>
             </motion.div >
