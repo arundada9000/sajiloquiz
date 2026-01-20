@@ -24,6 +24,22 @@ export const config = {
     autoStartOnPass: true,   // Start timer automatically when "Pass" is clicked?
   },
 
+  // --- SOUND CONFIGURATION ---
+  sounds: {
+    masterEnabled: true,     // Master on/off for all sounds
+    click: true,             // Hover/interaction sounds
+    select: true,            // Question selection
+    reveal: true,            // Answer reveal
+    back: true,              // Navigation back
+    timerTick: true,         // Timer tick (not currently used)
+    timerEnd: true,          // Timer alarm
+    success: true,           // Success actions
+    error: true,             // Error feedback
+    warning: true,           // Warning alerts
+    pass: true,              // Pass button
+    fullscreen: true,        // Fullscreen toggle
+  },
+
   // --- UI & FONTS CONFIGURATION ---
   // You can use standard CSS units (px, rem, em, %)
   fonts: {
@@ -39,3 +55,4 @@ export const config = {
     timerTime: "3.75rem",    // Size of the big Timer countdown
   }
 };
+

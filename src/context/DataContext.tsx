@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { config as defaultConfig } from '../data/config';
 import { questions as defaultQuestions } from '../data/questions';
+import { setSoundPreferences } from '../utils/sounds';
 
 // Type definitions based on your existing data structures
 export type Round = {
@@ -18,6 +19,20 @@ export type AppConfig = {
         passDuration: number;
         autoStartOnOpen: boolean;
         autoStartOnPass: boolean;
+    };
+    sounds: {
+        masterEnabled: boolean;
+        click: boolean;
+        select: boolean;
+        reveal: boolean;
+        back: boolean;
+        timerTick: boolean;
+        timerEnd: boolean;
+        success: boolean;
+        error: boolean;
+        warning: boolean;
+        pass: boolean;
+        fullscreen: boolean;
     };
     fonts: {
         gridNumber: string;
@@ -60,9 +75,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [appConfig, setAppConfig] = useState<AppConfig>(() => {
         try {
             const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
-            return saved ? (JSON.parse(saved) as unknown as AppConfig) : (defaultConfig as unknown as AppConfig);
+            const loadedConfig = saved ? (JSON.parse(saved) as unknown as AppConfig) : (defaultConfig as unknown as AppConfig);
+            // Sync sounds on initial load
+            setSoundPreferences(loadedConfig.sounds);
+            return loadedConfig;
         } catch (error) {
             console.error('Failed to load config from storage:', error);
+            setSoundPreferences((defaultConfig as unknown as AppConfig).sounds);
             return defaultConfig as unknown as AppConfig;
         }
     });
@@ -88,7 +107,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }, [allQuestions]);
 
     const updateConfig = (newConfig: Partial<AppConfig>) => {
-        setAppConfig(prev => ({ ...prev, ...newConfig }));
+        setAppConfig(prev => {
+            const updated = { ...prev, ...newConfig };
+            // Sync sound preferences whenever config updates
+            if (newConfig.sounds) {
+                setSoundPreferences(newConfig.sounds);
+            }
+            return updated;
+        });
     };
 
     const updateQuestion = (updatedQ: Question) => {

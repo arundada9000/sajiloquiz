@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RotateCcw, Download, Upload, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Download, Upload, Plus, Trash2, Edit2, Check, X, Volume2 } from 'lucide-react';
 import { useData, Question, AppConfig, Round } from '../context/DataContext';
+import { sounds } from '../utils/sounds';
 
 export default function AdminPage() {
     const { appConfig, allQuestions, updateConfig, addQuestion, editQuestion, deleteQuestion, resetData, importData } = useData();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'general' | 'appearance' | 'questions' | 'data' | 'help'>('questions');
+    const [activeTab, setActiveTab] = useState<'general' | 'appearance' | 'questions' | 'data' | 'sounds' | 'help'>('questions');
 
     // --- Local State for Forms ---
     // We bind forms directly to config updates or keep local buffer if validaton needed
@@ -36,6 +37,7 @@ export default function AdminPage() {
                             <TabButton id="questions" label="Questions" active={activeTab} onClick={setActiveTab} />
                             <TabButton id="general" label="Settings" active={activeTab} onClick={setActiveTab} />
                             <TabButton id="appearance" label="Appearance" active={activeTab} onClick={setActiveTab} />
+                            <TabButton id="sounds" label="Sounds" active={activeTab} onClick={setActiveTab} />
                             <TabButton id="data" label="Backup" active={activeTab} onClick={setActiveTab} />
                             <TabButton id="help" label="Help" active={activeTab} onClick={setActiveTab} />
                         </div>
@@ -45,6 +47,7 @@ export default function AdminPage() {
                     <div className="flex-1 glass-panel p-4 md:p-8 min-h-[500px]">
                         {activeTab === 'general' && <GeneralSettings tabConfig={appConfig} onUpdate={updateConfig} />}
                         {activeTab === 'appearance' && <AppearanceSettings tabConfig={appConfig} onUpdate={updateConfig} />}
+                        {activeTab === 'sounds' && <SoundSettings tabConfig={appConfig} onUpdate={updateConfig} />}
                         {activeTab === 'questions' && <QuestionManager questions={allQuestions} rounds={appConfig.rounds} enableRounds={appConfig.enableRounds} onAdd={addQuestion} onEdit={editQuestion} onDelete={deleteQuestion} />}
                         {activeTab === 'data' && <DataActions onReset={resetData} onImport={importData} config={appConfig} questions={allQuestions} />}
                         {activeTab === 'help' && <HelpGuide />}
@@ -168,6 +171,114 @@ function AppearanceSettings({ tabConfig, onUpdate }: { tabConfig: AppConfig, onU
         </div>
     )
 }
+
+function SoundSettings({ tabConfig, onUpdate }: { tabConfig: AppConfig, onUpdate: (c: Partial<AppConfig>) => void }) {
+    const updateSound = (key: keyof AppConfig['sounds'], val: boolean) => {
+        onUpdate({ sounds: { ...tabConfig.sounds, [key]: val } });
+    };
+
+    const toggleAll = (enabled: boolean) => {
+        const allSounds = { ...tabConfig.sounds };
+        Object.keys(allSounds).forEach(key => {
+            (allSounds as any)[key] = enabled;
+        });
+        onUpdate({ sounds: allSounds });
+    };
+
+    const soundsList: Array<{ key: keyof AppConfig['sounds'], label: string, description: string }> = [
+        { key: 'click', label: 'Click', description: 'Hover and interaction sounds' },
+        { key: 'select', label: 'Select', description: 'Question selection' },
+        { key: 'reveal', label: 'Reveal', description: 'Answer reveal chime' },
+        { key: 'back', label: 'Back', description: 'Navigation back' },
+        { key: 'timerEnd', label: 'Timer End', description: 'Timer alarm' },
+        { key: 'success', label: 'Success', description: 'Success actions' },
+        { key: 'error', label: 'Error', description: 'Error feedback' },
+        { key: 'warning', label: 'Warning', description: 'Warning alerts' },
+        { key: 'pass', label: 'Pass', description: 'Pass button' },
+        { key: 'fullscreen', label: 'Fullscreen', description: 'Fullscreen toggle' },
+    ];
+
+    return (
+        <div className="space-y-8 animate-fade-in">
+            <SectionTitle title="Sound Effects" />
+
+            {/* Master Toggle */}
+            <div className="p-6 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                            <Volume2 size={20} />
+                            Master Volume
+                        </h4>
+                        <p className="text-sm text-gray-400 mt-1">Enable or disable all sound effects globally</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => toggleAll(true)}
+                            className="px-4 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded-lg font-bold text-sm transition-colors"
+                        >
+                            Enable All
+                        </button>
+                        <button
+                            onClick={() => toggleAll(false)}
+                            className="px-4 py-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 rounded-lg font-bold text-sm transition-colors"
+                        >
+                            Disable All
+                        </button>
+                    </div>
+                </div>
+                <Checkbox
+                    label="Master Sound Toggle"
+                    checked={tabConfig.sounds.masterEnabled}
+                    onChange={(c) => updateSound('masterEnabled', c)}
+                />
+            </div>
+
+            {/* Individual Sound Controls */}
+            <div className="space-y-3">
+                <h4 className="text-sm uppercase tracking-wider text-gray-400 font-bold">Individual Sound Controls</h4>
+                {soundsList.map(sound => (
+                    <div
+                        key={sound.key}
+                        className="p-4 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-colors flex items-center justify-between group"
+                    >
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                                <Checkbox
+                                    label=""
+                                    checked={tabConfig.sounds[sound.key]}
+                                    onChange={(c) => updateSound(sound.key, c)}
+                                />
+                                <div>
+                                    <p className="font-bold text-white">{sound.label}</p>
+                                    <p className="text-xs text-gray-400">{sound.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                // Temporarily enable to preview even if disabled
+                                const soundFunc = sounds[sound.key as keyof typeof sounds];
+                                if (typeof soundFunc === 'function') {
+                                    soundFunc();
+                                }
+                            }}
+                            className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 rounded-lg text-sm font-medium transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1"
+                            title="Preview Sound"
+                        >
+                            <Volume2 size={14} /> Preview
+                        </button>
+                    </div>
+                ))}
+            </div>
+
+            <div className="p-4 rounded bg-blue-500/10 border border-blue-500/20 text-sm text-blue-200">
+                <p>💡 <strong>Tip:</strong> Sounds are generated using Web Audio API. No external files needed! Preview any sound to hear it.</p>
+            </div>
+        </div>
+    );
+}
+
 
 function QuestionManager({ questions, rounds, enableRounds, onAdd, onEdit, onDelete }: { questions: Question[], rounds: Round[], enableRounds: boolean, onAdd: any, onEdit: any, onDelete: any }) {
     const [editingId, setEditingId] = useState<number | null>(null);

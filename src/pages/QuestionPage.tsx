@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Eye, EyeOff, Timer, Play, Pause, RotateCcw, Plus, Minus, ArrowRight, Maximize, Minimize, LayoutGrid, X } from 'lucide-react';
@@ -32,11 +32,9 @@ export default function QuestionPage() {
     // Quick Peek State
     const [showQuickPeek, setShowQuickPeek] = useState(false);
 
-    // Ref to track if fullscreen exit was intentional (via our button/F key)
-    const intentionalExitRef = useRef(false);
-
     // Fullscreen Toggle Handler
     const toggleFullscreen = useCallback(() => {
+        sounds.fullscreen();
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().then(() => {
                 setIsFullscreen(true);
@@ -44,36 +42,20 @@ export default function QuestionPage() {
                 console.error('Fullscreen error:', err);
             });
         } else {
-            // Mark this as intentional exit
-            intentionalExitRef.current = true;
             document.exitFullscreen().then(() => {
                 setIsFullscreen(false);
-                intentionalExitRef.current = false;
             });
         }
     }, []);
 
-    // Listen for fullscreen changes - re-enter if exited unintentionally (Esc key)
+    // Listen for fullscreen changes
     useEffect(() => {
         const handleFullscreenChange = () => {
-            const currentlyFullscreen = !!document.fullscreenElement;
-
-            // If we just exited fullscreen and it wasn't intentional, re-enter!
-            if (!currentlyFullscreen && isFullscreen && !intentionalExitRef.current) {
-                // Small delay to avoid browser blocking rapid fullscreen requests
-                setTimeout(() => {
-                    document.documentElement.requestFullscreen().catch(() => {
-                        // If re-enter fails, just update state
-                        setIsFullscreen(false);
-                    });
-                }, 50);
-            } else {
-                setIsFullscreen(currentlyFullscreen);
-            }
+            setIsFullscreen(!!document.fullscreenElement);
         };
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    }, [isFullscreen]);
+    }, []);
 
     // Timer State
     const [timeLeft, setTimeLeft] = useState(config.timer.defaultDuration);
@@ -126,7 +108,7 @@ export default function QuestionPage() {
     }, [showAnswer]);
 
     const handlePass = useCallback(() => {
-        sounds.click();
+        sounds.pass();
         setTimeLeft(config.timer.passDuration);
         if (config.timer.autoStartOnPass) {
             setIsActive(true);
@@ -157,10 +139,10 @@ export default function QuestionPage() {
                     return; // Stop here, don't process further
                 }
 
-                // If in fullscreen, don't navigate back - let user use the back button or stay
-                // This prevents accidental navigation when Esc exits fullscreen
+                // If in fullscreen, prevent ESC from doing anything (don't exit fullscreen, don't navigate)
                 if (isFullscreen) {
-                    return; // Esc will exit fullscreen (browser default), but won't navigate
+                    e.preventDefault();
+                    return;
                 }
 
                 // Normal mode: Escape goes back
@@ -408,7 +390,11 @@ export default function QuestionPage() {
                                     return (
                                         <button
                                             key={q.id}
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                                // Prevent navigation to visited questions unless Alt is held
+                                                if (isVisited && !isCurrent && !e.altKey) {
+                                                    return;
+                                                }
                                                 sounds.select();
                                                 setShowQuickPeek(false);
                                                 navigate(`/question/${q.id}`);
@@ -419,7 +405,7 @@ export default function QuestionPage() {
                                                 ${isCurrent
                                                     ? 'bg-purple-600 border-purple-400 text-white ring-2 ring-purple-400 ring-offset-2 ring-offset-gray-900'
                                                     : isVisited
-                                                        ? 'bg-red-900/30 border-red-800/40 text-gray-500'
+                                                        ? 'bg-red-900/30 border-red-800/40 text-gray-500 cursor-not-allowed'
                                                         : 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-purple-500 hover:scale-105'
                                                 }
                                             `}
