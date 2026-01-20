@@ -24,6 +24,12 @@ export const config = {
     autoStartOnPass: true,   // Start timer automatically when "Pass" is clicked?
   },
 
+  // --- THEME CONFIGURATION ---
+  theme: {
+    mode: "dark",           // "light" | "dark" | "auto"
+    colorScheme: "purple",  // "purple" | "blue" | "green" | "red" | "orange" | "pink"
+  },
+
   // --- SOUND CONFIGURATION ---
   sounds: {
     masterEnabled: true,     // Master on/off for all sounds

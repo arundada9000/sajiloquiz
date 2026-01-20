@@ -5,6 +5,8 @@ import { useData } from '../context/DataContext';
 import { useQuiz } from '../context/QuizContext';
 import { Trash2, Trophy, Target, ListChecks, Settings, Download, Maximize, Minimize } from 'lucide-react';
 import { sounds } from '../utils/sounds';
+import ShortcutsModal from '../components/ShortcutsModal';
+import ContextMenu from '../components/ContextMenu';
 
 export default function GridPage() {
     const { appConfig: config, allQuestions: questions } = useData();
@@ -17,6 +19,12 @@ export default function GridPage() {
 
     // Fullscreen State
     const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Shortcuts Modal State
+    const [showShortcuts, setShowShortcuts] = useState(false);
+
+    // Context Menu State
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
     // Fullscreen Toggle Handler
     const toggleFullscreen = useCallback(() => {
@@ -55,10 +63,26 @@ export default function GridPage() {
             if (e.code === 'Escape' && isFullscreen) {
                 e.preventDefault();
             }
+
+            // Shortcuts Modal Toggle (? key)
+            if (e.key === '?') {
+                e.preventDefault();
+                setShowShortcuts(prev => !prev);
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [toggleFullscreen, isFullscreen]);
+
+    // Context Menu Handler
+    useEffect(() => {
+        const handleContextMenu = (e: MouseEvent) => {
+            e.preventDefault();
+            setContextMenu({ x: e.clientX, y: e.clientY });
+        };
+        document.addEventListener('contextmenu', handleContextMenu);
+        return () => document.removeEventListener('contextmenu', handleContextMenu);
+    }, []);
 
     // Simple Helper Component for Question Cards
     const QuestionCard = ({ q }: { q: typeof questions[0] }) => {
@@ -280,6 +304,20 @@ export default function GridPage() {
                     )}
                 </div>
             </div>
+            {/* Shortcuts Modal */}
+            <ShortcutsModal
+                isOpen={showShortcuts}
+                onClose={() => setShowShortcuts(false)}
+                currentPage="grid"
+            />
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    onClose={() => setContextMenu(null)}
+                    pageType="grid"
+                />
+            )}
         </>
     );
 }

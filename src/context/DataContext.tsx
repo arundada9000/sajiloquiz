@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { config as defaultConfig } from '../data/config';
 import { questions as defaultQuestions } from '../data/questions';
 import { setSoundPreferences } from '../utils/sounds';
+import { applyTheme } from '../utils/theme';
 
 // Type definitions based on your existing data structures
 export type Round = {
@@ -19,6 +20,10 @@ export type AppConfig = {
         passDuration: number;
         autoStartOnOpen: boolean;
         autoStartOnPass: boolean;
+    };
+    theme: {
+        mode: 'light' | 'dark' | 'auto';
+        colorScheme: 'purple' | 'blue' | 'green' | 'red' | 'orange' | 'pink';
     };
     sounds: {
         masterEnabled: boolean;
@@ -78,10 +83,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
             const loadedConfig = saved ? (JSON.parse(saved) as unknown as AppConfig) : (defaultConfig as unknown as AppConfig);
             // Sync sounds on initial load
             setSoundPreferences(loadedConfig.sounds);
+            // Apply theme on initial load
+            applyTheme(loadedConfig.theme);
             return loadedConfig;
         } catch (error) {
             console.error('Failed to load config from storage:', error);
             setSoundPreferences((defaultConfig as unknown as AppConfig).sounds);
+            applyTheme((defaultConfig as unknown as AppConfig).theme);
             return defaultConfig as unknown as AppConfig;
         }
     });
@@ -112,6 +120,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // Sync sound preferences whenever config updates
             if (newConfig.sounds) {
                 setSoundPreferences(newConfig.sounds);
+            }
+            // Apply theme whenever config updates
+            if (newConfig.theme) {
+                applyTheme(newConfig.theme);
             }
             return updated;
         });

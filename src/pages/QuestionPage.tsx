@@ -5,6 +5,8 @@ import { ArrowLeft, Eye, EyeOff, Timer, Play, Pause, RotateCcw, Plus, Minus, Arr
 import { useData } from '../context/DataContext';
 import { useQuiz } from '../context/QuizContext';
 import { sounds } from '../utils/sounds';
+import ShortcutsModal from '../components/ShortcutsModal';
+import ContextMenu from '../components/ContextMenu';
 
 export default function QuestionPage() {
     const { id } = useParams();
@@ -31,6 +33,12 @@ export default function QuestionPage() {
 
     // Quick Peek State
     const [showQuickPeek, setShowQuickPeek] = useState(false);
+
+    // Shortcuts Modal State
+    const [showShortcuts, setShowShortcuts] = useState(false);
+
+    // Context Menu State
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
     // Fullscreen Toggle Handler
     const toggleFullscreen = useCallback(() => {
@@ -165,10 +173,26 @@ export default function QuestionPage() {
             if (e.key.toLowerCase() === 'q') {
                 setShowQuickPeek(prev => !prev);
             }
+
+            // Shortcuts Modal Toggle (? key)
+            if (e.key === '?') {
+                e.preventDefault();
+                setShowShortcuts(prev => !prev);
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleBack, handleToggleAnswer, config.timer.defaultDuration, showQuickPeek, toggleFullscreen, isFullscreen]);
+
+    // Context Menu Handler
+    useEffect(() => {
+        const handleContextMenu = (e: MouseEvent) => {
+            e.preventDefault();
+            setContextMenu({ x: e.clientX, y: e.clientY });
+        };
+        document.addEventListener('contextmenu', handleContextMenu);
+        return () => document.removeEventListener('contextmenu', handleContextMenu);
+    }, []);
 
 
     if (!question) return null;
@@ -430,6 +454,25 @@ export default function QuestionPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Shortcuts Modal */}
+            <ShortcutsModal
+                isOpen={showShortcuts}
+                onClose={() => setShowShortcuts(false)}
+                currentPage="question"
+            />
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    onClose={() => setContextMenu(null)}
+                    pageType="question"
+                    questionText={question?.text}
+                    answerText={question?.answer}
+                    onToggleAnswer={handleToggleAnswer}
+                    onQuickPeek={() => setShowQuickPeek(true)}
+                />
+            )}
         </div >
     );
 }
