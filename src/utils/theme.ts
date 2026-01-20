@@ -64,11 +64,15 @@ export function applyTheme(theme: ThemeConfig) {
         root.style.setProperty('--bg-elevated', '20, 20, 25');
         root.style.setProperty('--text-primary', '255, 255, 255');
         root.style.setProperty('--text-secondary', '156, 163, 175');
+        root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.05)');
+        root.style.setProperty('--card-border', 'rgba(255, 255, 255, 0.1)');
     } else {
-        root.style.setProperty('--bg-base', '249, 250, 251');
+        root.style.setProperty('--bg-base', '248, 250, 252'); // Slate-50 tint
         root.style.setProperty('--bg-elevated', '255, 255, 255');
-        root.style.setProperty('--text-primary', '17, 24, 39');
-        root.style.setProperty('--text-secondary', '107, 114, 128');
+        root.style.setProperty('--text-primary', '15, 23, 42'); // Slate-900
+        root.style.setProperty('--text-secondary', '71, 85, 105'); // Slate-600
+        root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.85)');
+        root.style.setProperty('--card-border', `rgba(${colors.primary}, 0.1)`);
     }
 }
 

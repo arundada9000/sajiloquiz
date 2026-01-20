@@ -98,7 +98,7 @@ export default function GridPage() {
                 transition-all duration-300 border relative overflow-hidden group cursor-pointer
                 ${isVisited
                             ? 'bg-red-900/40 border-red-800/50 text-gray-500 cursor-not-allowed grayscale-[0.8]'
-                            : 'bg-white/10 border-white/20 text-white backdrop-blur-md hover:bg-white/20 hover:border-purple-500 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:scale-105'
+                            : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-primary))] backdrop-blur-md hover:bg-white/20 hover:border-purple-500 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:scale-105 shadow-xl'
                         }
             `}
                     style={{ fontSize: config.fonts.gridNumber }}
@@ -172,7 +172,7 @@ export default function GridPage() {
                     className="text-center mb-6 md:mb-8 relative z-10"
                 >
                     <h1 className="text-4xl md:text-5xl font-bold mb-2 title-gradient">{config.appName}</h1>
-                    <p className="text-gray-400 text-xs md:text-sm tracking-widest uppercase">Select a question to begin • <span className="text-gray-600">Alt+Click to re-open visited</span></p>
+                    <p className="text-[rgb(var(--text-secondary))] text-xs md:text-sm tracking-widest uppercase font-medium">Select a question to begin • <span className="opacity-60">Alt+Click to re-open visited</span></p>
                 </motion.div>
 
                 {/* Stats Dashboard */}
@@ -189,8 +189,8 @@ export default function GridPage() {
                             <Trophy className="w-4 h-4 md:w-6 md:h-6" />
                         </div>
                         <div className="text-center md:text-left">
-                            <p className="uppercase font-bold text-gray-400" style={{ fontSize: config.fonts.statsTitle }}>Total</p>
-                            <p className="font-bold text-white leading-none" style={{ fontSize: config.fonts.statsValue }}>{totalQuestions}</p>
+                            <p className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>Total</p>
+                            <p className="font-bold text-[rgb(var(--text-primary))] leading-none" style={{ fontSize: config.fonts.statsValue }}>{totalQuestions}</p>
                         </div>
                     </div>
 
@@ -200,8 +200,8 @@ export default function GridPage() {
                             <Target className="w-4 h-4 md:w-6 md:h-6" />
                         </div>
                         <div className="text-center md:text-left">
-                            <p className="uppercase font-bold text-gray-400" style={{ fontSize: config.fonts.statsTitle }}>Left</p>
-                            <p className="font-bold text-white leading-none" style={{ fontSize: config.fonts.statsValue }}>{remainingCount}</p>
+                            <p className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>Left</p>
+                            <p className="font-bold text-[rgb(var(--text-primary))] leading-none" style={{ fontSize: config.fonts.statsValue }}>{remainingCount}</p>
                         </div>
                     </div>
 
@@ -211,8 +211,8 @@ export default function GridPage() {
                             <ListChecks className="w-4 h-4 md:w-6 md:h-6" />
                         </div>
                         <div className="text-center md:text-left">
-                            <p className="uppercase font-bold text-gray-400" style={{ fontSize: config.fonts.statsTitle }}>Done</p>
-                            <p className="font-bold text-white leading-none" style={{ fontSize: config.fonts.statsValue }}>{completedCount}</p>
+                            <p className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>Done</p>
+                            <p className="font-bold text-[rgb(var(--text-primary))] leading-none" style={{ fontSize: config.fonts.statsValue }}>{completedCount}</p>
                         </div>
                     </div>
                 </motion.div>
@@ -236,7 +236,7 @@ export default function GridPage() {
                                     className="w-full"
                                 >
                                     <h3
-                                        className="font-bold mb-6 text-white border-b-2 border-purple-500/50 pb-2 inline-block px-4"
+                                        className="font-bold mb-6 text-[rgb(var(--text-primary))] border-b-2 border-purple-500/50 pb-2 inline-block px-4"
                                         style={{ fontSize: config.fonts.roundTitle }}
                                     >
                                         {round.title}

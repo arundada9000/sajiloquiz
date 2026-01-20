@@ -18,10 +18,12 @@
   /* Text colors - dynamically set based on mode */
   --text-primary: 255, 255, 255;
   --text-secondary: 156, 163, 175;
+  --text-contrast: 0, 0, 0;
 
-  /* Static colors */
-  --accent-green: 14, 203, 129;
-  --danger: 239, 68, 68;
+  /* Component colors */
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --card-shadow: rgba(0, 0, 0, 0.3);
 
   /* Legacy support - using CSS variables */
   --bg-color: rgb(var(--bg-base));
@@ -30,15 +32,19 @@
   --primary: rgb(var(--color-primary));
   --primary-glow: rgb(var(--color-secondary));
   --accent: rgb(var(--accent-green));
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: var(--card-bg);
+  --glass-border: var(--card-border);
   --grid-gap: 1rem;
 }
 
 /* Light mode overrides */
 [data-theme-mode="light"] {
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(0, 0, 0, 0.1);
+  --text-contrast: 255, 255, 255;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(var(--color-primary), 0.15);
+  --card-shadow: rgba(var(--color-primary), 0.1);
+  --glass-bg: var(--card-bg);
+  --glass-border: var(--card-border);
 }
 
 /* Custom Scrollbar */

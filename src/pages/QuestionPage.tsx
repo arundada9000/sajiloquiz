@@ -198,18 +198,17 @@ export default function QuestionPage() {
     if (!question) return null;
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden text-white">
+        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden text-[rgb(var(--text-primary))]">
             <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] -z-10 pointer-events-none" />
             <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
 
-            {/* Fullscreen Toggle Button - Fixed Top Right */}
             <button
                 onClick={toggleFullscreen}
-                className="fixed top-4 right-4 z-50 p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group"
+                className="fixed top-4 right-4 z-50 p-3 rounded-xl bg-[var(--card-bg)] backdrop-blur-md border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-white/10 transition-all group shadow-xl"
                 title={isFullscreen ? 'Exit Fullscreen (F)' : 'Enter Fullscreen (F)'}
             >
                 {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                <span className="absolute -bottom-8 right-0 text-xs bg-black/80 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                <span className="absolute -bottom-8 right-0 text-xs bg-black/80 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                     Press F
                 </span>
             </button>
@@ -225,19 +224,19 @@ export default function QuestionPage() {
                     <div className="mb-8">
                         {/* Header Toolbar */}
                         <div className="flex items-center gap-3 mb-6">
-                            <button onClick={handleBack} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group">
-                                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Back to Grid <span className="text-xs border border-gray-600 px-1 rounded mx-2 opacity-50 hidden md:inline">ESC</span>
+                            <button onClick={handleBack} className="flex items-center gap-2 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors group font-medium">
+                                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Back to Grid <span className="text-xs border border-[var(--card-border)] px-1 rounded mx-2 opacity-50 hidden md:inline">ESC</span>
                             </button>
 
                             {/* Quick Peek Button */}
                             <button
                                 onClick={() => setShowQuickPeek(true)}
-                                className="ml-auto flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group"
+                                className="ml-auto flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-white/10 transition-all group"
                                 title="Quick Peek All Questions (Q)"
                             >
                                 <LayoutGrid size={16} />
                                 <span className="hidden md:inline text-sm">Overview</span>
-                                <span className="text-xs border border-gray-600 px-1 rounded opacity-50 hidden md:inline">Q</span>
+                                <span className="text-xs border border-[var(--card-border)] px-1 rounded opacity-50 hidden md:inline">Q</span>
                             </button>
                         </div>
 
@@ -298,8 +297,8 @@ export default function QuestionPage() {
                                         className="w-full"
                                     >
                                         <div className="p-8 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 w-full">
-                                            <p className="text-sm text-emerald-400 uppercase tracking-widest mb-2 font-bold">Answer</p>
-                                            <p className="font-medium text-emerald-100" style={{ fontSize: config.fonts.answerTitle }}>
+                                            <p className="text-sm text-emerald-500 uppercase tracking-widest mb-2 font-bold">Answer</p>
+                                            <p className="font-medium text-[rgb(var(--text-primary))]" style={{ fontSize: config.fonts.answerTitle }}>
                                                 {question.answer}
                                             </p>
                                         </div>
@@ -321,13 +320,13 @@ export default function QuestionPage() {
 
                 {/* Timer Panel */}
                 <div className="w-full md:w-72 flex flex-col gap-4">
-                    <div className={`p-6 rounded-2xl border flex flex-col items-center justify-center transition-colors duration-500 ${timeLeft === 0 ? 'bg-red-500/20 border-red-500/50 anim-pulse' : 'bg-black/20 border-white/10'}`}>
+                    <div className={`p-6 rounded-2xl border flex flex-col items-center justify-center transition-colors duration-500 shadow-xl ${timeLeft === 0 ? 'bg-red-500/20 border-red-500/50 anim-pulse' : 'bg-[var(--card-bg)] border-[var(--card-border)]'}`}>
 
                         {/* Timer Header & Time */}
-                        <div className="flex items-center gap-2 mb-2 text-gray-400">
+                        <div className="flex items-center gap-2 mb-2 text-[rgb(var(--text-secondary))]">
                             <Timer size={16} /> <span>Timer</span>
                         </div>
-                        <div className={`font-mono font-bold mb-4 ${timeLeft <= 10 ? 'text-red-400' : 'text-white'}`} style={{ fontSize: config.fonts.timerTime }}>
+                        <div className={`font-mono font-bold mb-4 ${timeLeft <= 10 ? 'text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'text-[rgb(var(--text-primary))]'}`} style={{ fontSize: config.fonts.timerTime }}>
                             {timeLeft}s
                         </div>
                     </div>

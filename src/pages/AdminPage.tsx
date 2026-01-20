@@ -62,13 +62,13 @@ export default function AdminPage() {
   // For simplicity in this v1, we will update directly or use simple local state for questions
 
   return (
-    <div className="min-h-screen p-4 md:p-8 text-white pb-32">
+    <div className="min-h-screen p-4 md:p-8 text-[rgb(var(--text-primary))] pb-32">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link
               to="/"
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 hover:bg-[var(--card-bg)] rounded-full transition-colors text-[rgb(var(--text-primary))]"
             >
               <ArrowLeft />
             </Link>
@@ -199,7 +199,7 @@ function TabButton({
   return (
     <button
       onClick={() => onClick(id)}
-      className={`text-left px-4 py-3 rounded-lg transition-colors ${active === id ? "bg-white/20 text-white font-bold" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+      className={`text-left px-4 py-3 rounded-lg transition-colors ${active === id ? "bg-[var(--card-bg)] text-[rgb(var(--text-primary))] font-bold shadow-lg" : "text-[rgb(var(--text-secondary))] hover:bg-white/5 hover:text-[rgb(var(--text-primary))]"}`}
     >
       {label}
     </button>
@@ -320,7 +320,7 @@ function GeneralSettings({
           {tabConfig.rounds.map((round, idx) => (
             <div
               key={idx}
-              className="p-4 rounded bg-white/5 border border-white/10 flex flex-col gap-4 relative group"
+              className="p-4 rounded bg-[var(--card-bg)] border border-[var(--card-border)] flex flex-col gap-4 relative group shadow-sm"
             >
               <div className="flex justify-between items-start">
                 <h4 className="text-sm font-bold text-gray-400">
@@ -453,25 +453,25 @@ function SoundSettings({
     label: string;
     description: string;
   }> = [
-    {
-      key: "click",
-      label: "Click",
-      description: "Hover and interaction sounds",
-    },
-    { key: "select", label: "Select", description: "Question selection" },
-    { key: "reveal", label: "Reveal", description: "Answer reveal chime" },
-    { key: "back", label: "Back", description: "Navigation back" },
-    { key: "timerEnd", label: "Timer End", description: "Timer alarm" },
-    { key: "success", label: "Success", description: "Success actions" },
-    { key: "error", label: "Error", description: "Error feedback" },
-    { key: "warning", label: "Warning", description: "Warning alerts" },
-    { key: "pass", label: "Pass", description: "Pass button" },
-    {
-      key: "fullscreen",
-      label: "Fullscreen",
-      description: "Fullscreen toggle",
-    },
-  ];
+      {
+        key: "click",
+        label: "Click",
+        description: "Hover and interaction sounds",
+      },
+      { key: "select", label: "Select", description: "Question selection" },
+      { key: "reveal", label: "Reveal", description: "Answer reveal chime" },
+      { key: "back", label: "Back", description: "Navigation back" },
+      { key: "timerEnd", label: "Timer End", description: "Timer alarm" },
+      { key: "success", label: "Success", description: "Success actions" },
+      { key: "error", label: "Error", description: "Error feedback" },
+      { key: "warning", label: "Warning", description: "Warning alerts" },
+      { key: "pass", label: "Pass", description: "Pass button" },
+      {
+        key: "fullscreen",
+        label: "Fullscreen",
+        description: "Fullscreen toggle",
+      },
+    ];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -612,11 +612,10 @@ function ThemeSettings({
               onClick={() =>
                 onUpdate({ theme: { ...tabConfig.theme, mode: mode.id } })
               }
-              className={`p-6 rounded-xl border-2 transition-all ${
-                tabConfig.theme.mode === mode.id
-                  ? "border-purple-500 bg-purple-500/20"
-                  : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
-              }`}
+              className={`p-6 rounded-xl border-2 transition-all ${tabConfig.theme.mode === mode.id
+                ? "border-purple-500 bg-purple-500/20"
+                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-purple-500/30 hover:bg-white/10"
+                }`}
             >
               <mode.Icon className="w-12 h-12 mb-3 mx-auto" />
               <div className="font-bold text-white mb-1">{mode.name}</div>
@@ -638,11 +637,10 @@ function ThemeSettings({
                   theme: { ...tabConfig.theme, colorScheme: scheme.id },
                 })
               }
-              className={`p-6 rounded-xl border-2 transition-all relative overflow-hidden group ${
-                tabConfig.theme.colorScheme === scheme.id
-                  ? "border-white/50 bg-white/10"
-                  : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
-              }`}
+              className={`p-6 rounded-xl border-2 transition-all relative overflow-hidden group ${tabConfig.theme.colorScheme === scheme.id
+                ? "border-purple-500 bg-[var(--card-bg)]"
+                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-white/20 hover:bg-white/10"
+                }`}
             >
               {/* Color preview */}
               <div className="flex gap-2 mb-3">
@@ -686,16 +684,16 @@ function ThemeSettings({
       </div>
 
       {/* Current Settings Summary */}
-      <div className="p-4 rounded bg-white/5 border border-white/10">
-        <h5 className="font-bold text-white mb-2">Current Theme</h5>
+      <div className="p-4 rounded bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm">
+        <h5 className="font-bold text-[rgb(var(--text-primary))] mb-2">Current Theme</h5>
         <div className="flex flex-wrap gap-3 text-sm">
-          <div className="px-3 py-1 rounded-full bg-white/10 text-gray-300">
+          <div className="px-3 py-1 rounded-full bg-white/10 text-[rgb(var(--text-secondary))]">
             Mode:{" "}
-            <span className="font-bold text-white">{tabConfig.theme.mode}</span>
+            <span className="font-bold text-[rgb(var(--text-primary))]">{tabConfig.theme.mode}</span>
           </div>
-          <div className="px-3 py-1 rounded-full bg-white/10 text-gray-300">
+          <div className="px-3 py-1 rounded-full bg-white/10 text-[rgb(var(--text-secondary))]">
             Scheme:{" "}
-            <span className="font-bold text-white capitalize">
+            <span className="font-bold text-[rgb(var(--text-primary))] capitalize">
               {tabConfig.theme.colorScheme}
             </span>
           </div>
@@ -1024,15 +1022,15 @@ function QuestionManager({
                 </div>
               ) : (
                 <>
-                  <div className="flex-1 min-w-0 md:border-l md:border-white/10 md:pl-4">
-                    <p className="font-medium text-white mb-1 break-words">
+                  <div className="flex-1 min-w-0 md:border-l md:border-[var(--card-border)] md:pl-4">
+                    <p className="font-medium text-[rgb(var(--text-primary))] mb-1 break-words">
                       {q.text}
                     </p>
                     <p className="text-sm text-emerald-400 font-mono break-words">
                       {q.answer}
                     </p>
                     {round && (
-                      <div className="hidden md:inline-block mt-2 text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
+                      <div className="hidden md:inline-block mt-2 text-xs px-2 py-0.5 rounded-full bg-[var(--card-bg)] text-[rgb(var(--text-secondary))] border border-[var(--card-border)]">
                         {round.title}
                       </div>
                     )}
@@ -1143,14 +1141,14 @@ function DataActions({
       <SectionTitle title="Backup & Restore" />
 
       {/* Storage Indicator */}
-      <div className="p-4 rounded-lg bg-gray-800/50 border border-white/10">
-        <div className="flex justify-between text-xs mb-2 text-gray-400">
-          <span className="font-bold uppercase tracking-wider">
+      <div className="p-4 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm">
+        <div className="flex justify-between text-xs mb-2 text-[rgb(var(--text-secondary))] font-bold">
+          <span className="uppercase tracking-wider">
             Browser Storage Left
           </span>
           <span>{usage.used.toFixed(2)} MB used / ~5.00 MB limit</span>
         </div>
-        <div className="w-full bg-black/50 h-3 rounded-full overflow-hidden border border-white/5">
+        <div className="w-full bg-black/50 h-3 rounded-full overflow-hidden border border-[var(--card-border)]">
           <div
             className={`h-full transition-all duration-500 ${usage.percent > 90 ? "bg-red-500" : usage.percent > 70 ? "bg-amber-500" : "bg-emerald-500"}`}
             style={{ width: `${usage.percent}%` }}
@@ -1229,11 +1227,11 @@ function DataActions({
 
 function HelpGuide() {
   return (
-    <div className="space-y-8 animate-fade-in text-gray-300">
+    <div className="space-y-8 animate-fade-in text-[rgb(var(--text-secondary))]">
       <SectionTitle title="Keyboard Shortcuts" />
-      <p className="text-sm text-gray-400 mb-4">
+      <p className="text-sm text-[rgb(var(--text-secondary))] mb-4">
         Press{" "}
-        <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20 font-mono text-xs">
+        <kbd className="px-2 py-1 bg-[var(--card-bg)] rounded border border-[var(--card-border)] font-mono text-xs text-[rgb(var(--text-primary))]">
           ?
         </kbd>{" "}
         anywhere in the app to see all shortcuts
@@ -1282,34 +1280,34 @@ function HelpGuide() {
       <SectionTitle title="Quick Tips" />
       <ul className="space-y-2 list-disc pl-5">
         <li>
-          <strong className="text-white">Theme:</strong> Customize your app's
+          <strong className="text-[rgb(var(--text-primary))]">Theme:</strong> Customize your app's
           look in Admin → Theme. Choose from 6 color schemes and light/dark
           modes.
         </li>
         <li>
-          <strong className="text-white">Sounds:</strong> Control all sound
+          <strong className="text-[rgb(var(--text-primary))]">Sounds:</strong> Control all sound
           effects in Admin → Sounds. Each sound can be toggled individually.
         </li>
         <li>
-          <strong className="text-white">Rounds:</strong> You can add logic for
+          <strong className="text-[rgb(var(--text-primary))]">Rounds:</strong> You can add logic for
           Rounds in the Settings tab. Assign questions to rounds to
           auto-generate IDs.
         </li>
         <li>
-          <strong className="text-white">Media:</strong> Images and Audio are
+          <strong className="text-[rgb(var(--text-primary))]">Media:</strong> Images and Audio are
           auto-compressed. For large videos, use external links or the public
           folder.
         </li>
         <li>
-          <strong className="text-white">Install:</strong> Click 'Install App'
+          <strong className="text-[rgb(var(--text-primary))]">Install:</strong> Click 'Install App'
           on the main screen to install this quiz as a native application.
         </li>
         <li>
-          <strong className="text-white">Exporting:</strong> Always export your
+          <strong className="text-[rgb(var(--text-primary))]">Exporting:</strong> Always export your
           data ("Backup") before clearing browsing data or switching devices.
         </li>
         <li>
-          <strong className="text-white">Offline:</strong> This app works
+          <strong className="text-[rgb(var(--text-primary))]">Offline:</strong> This app works
           offline! You can disconnect from the internet after loading it.
         </li>
       </ul>
@@ -1486,12 +1484,12 @@ function ServiceCard({
   desc: string;
 }) {
   return (
-    <div className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-purple-500/30 transition-all group hover:bg-white/10">
+    <div className="p-5 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-purple-500/30 transition-all group hover:scale-[1.02] shadow-sm">
       <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 group-hover:bg-purple-500/20 transition-all shadow-inner">
         {icon}
       </div>
-      <h4 className="font-bold text-white mb-2 text-sm">{title}</h4>
-      <p className="text-gray-400 text-[11px] leading-relaxed">{desc}</p>
+      <h4 className="font-bold text-[rgb(var(--text-primary))] mb-2 text-sm">{title}</h4>
+      <p className="text-[rgb(var(--text-secondary))] text-[11px] leading-relaxed">{desc}</p>
     </div>
   );
 }
@@ -1541,7 +1539,7 @@ function ShortcutItem({
 
 function SectionTitle({ title }: { title: string }) {
   return (
-    <h3 className="text-xl font-bold text-white/80 mb-4 border-b border-white/10 pb-2">
+    <h3 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-4 border-b border-[var(--card-border)] pb-2">
       {title}
     </h3>
   );
@@ -1560,14 +1558,14 @@ function InputGroup({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs uppercase tracking-wider text-gray-400 font-bold">
+      <label className="text-xs uppercase tracking-wider text-[rgb(var(--text-secondary))] font-bold">
         {label}
       </label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-black/20 border border-white/10 rounded px-3 py-2 text-white focus:border-purple-500 outline-none transition-colors"
+        className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded px-3 py-2 text-[rgb(var(--text-primary))] focus:border-purple-500 outline-none transition-colors"
       />
     </div>
   );
