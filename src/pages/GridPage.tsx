@@ -1,0 +1,180 @@
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { questions } from '../data/questions';
+import { config } from '../data/config';
+import { useQuiz } from '../context/QuizContext';
+import { Trash2, Trophy, Target, ListChecks } from 'lucide-react';
+import { sounds } from '../utils/sounds';
+
+export default function GridPage() {
+    const { visitedIds, resetProgress } = useQuiz();
+
+    const totalQuestions = questions.length;
+    const completedCount = visitedIds.length;
+    const remainingCount = totalQuestions - completedCount;
+
+    // Simple Helper Component for Question Cards
+    const QuestionCard = ({ q }: { q: typeof questions[0] }) => {
+        const isVisited = visitedIds.includes(q.id);
+        return (
+            <motion.div
+                variants={{ hidden: { opacity: 0, scale: 0.8 }, show: { opacity: 1, scale: 1 } }}
+                className="w-full"
+            >
+                <Link
+                    to={isVisited ? '#' : `/question/${q.id}`}
+                    className={`
+                aspect-square flex items-center justify-center rounded-xl font-bold w-full
+                transition-all duration-300 border relative overflow-hidden group
+                ${isVisited
+                            ? 'bg-red-900/40 border-red-800/50 text-gray-500 cursor-not-allowed grayscale-[0.8]'
+                            : 'bg-white/10 border-white/20 text-white backdrop-blur-md hover:bg-white/20 hover:border-purple-500 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:scale-105'
+                        }
+            `}
+                    style={{ fontSize: config.fonts.gridNumber }}
+                    onClick={(e) => {
+                        if (isVisited) e.preventDefault();
+                        if (!isVisited) sounds.select();
+                    }}
+                    onMouseEnter={() => !isVisited && sounds.click()}
+                >
+                    {!isVisited && (
+                        <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 via-transparent to-transparent opacity-50" />
+                    )}
+                    {isVisited && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-30 select-none pointer-events-none">
+                            <div className="w-full h-[2px] bg-red-500/50 rotate-45 absolute" />
+                            <div className="w-full h-[2px] bg-red-500/50 -rotate-45 absolute" />
+                        </div>
+                    )}
+                    <span className="relative z-10 drop-shadow-md">{q.id}</span>
+                </Link>
+            </motion.div>
+        );
+    };
+
+    return (
+        <div className="min-h-screen p-4 md:p-8 flex flex-col items-center">
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center mb-6 md:mb-8 relative z-10"
+            >
+                <h1 className="text-4xl md:text-5xl font-bold mb-2 title-gradient">{config.appName}</h1>
+                <p className="text-gray-400 text-xs md:text-sm tracking-widest uppercase">Select a question to begin</p>
+            </motion.div>
+
+            {/* Stats Dashboard */}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="grid grid-cols-3 gap-2 md:flex md:gap-8 mb-6 md:mb-10 w-full max-w-4xl"
+            >
+                {/* ... Stats blocks ... */}
+                <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4 md:min-w-[160px]">
+                    {/* ... Icon ... */}
+                    <div className="p-2 md:p-3 rounded-full bg-purple-500/20 text-purple-300">
+                        <Trophy className="w-4 h-4 md:w-6 md:h-6" />
+                    </div>
+                    <div className="text-center md:text-left">
+                        <p className="uppercase font-bold text-gray-400" style={{ fontSize: config.fonts.statsTitle }}>Total</p>
+                        <p className="font-bold text-white leading-none" style={{ fontSize: config.fonts.statsValue }}>{totalQuestions}</p>
+                    </div>
+                </div>
+
+                <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4 md:min-w-[160px]">
+                    {/* ... Icon ... */}
+                    <div className="p-2 md:p-3 rounded-full bg-emerald-500/20 text-emerald-300">
+                        <Target className="w-4 h-4 md:w-6 md:h-6" />
+                    </div>
+                    <div className="text-center md:text-left">
+                        <p className="uppercase font-bold text-gray-400" style={{ fontSize: config.fonts.statsTitle }}>Left</p>
+                        <p className="font-bold text-white leading-none" style={{ fontSize: config.fonts.statsValue }}>{remainingCount}</p>
+                    </div>
+                </div>
+
+                <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4 md:min-w-[160px]">
+                    {/* ... Icon ... */}
+                    <div className="p-2 md:p-3 rounded-full bg-blue-500/20 text-blue-300">
+                        <ListChecks className="w-4 h-4 md:w-6 md:h-6" />
+                    </div>
+                    <div className="text-center md:text-left">
+                        <p className="uppercase font-bold text-gray-400" style={{ fontSize: config.fonts.statsTitle }}>Done</p>
+                        <p className="font-bold text-white leading-none" style={{ fontSize: config.fonts.statsValue }}>{completedCount}</p>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Helper to apply font size to Card */}
+            {/* Note: We need to update QuestionCard to use style={{ fontSize: config.fonts.gridNumber }} */}
+
+            {/* Logic for Rounds vs Standard Grid */}
+            {config.enableRounds ? (
+                <div className="w-full max-w-7xl flex flex-col gap-12">
+                    {config.rounds.map((round, rIdx) => {
+                        const roundQuestions = questions.filter(q => q.id >= round.range[0] && q.id <= round.range[1]);
+                        if (roundQuestions.length === 0) return null;
+
+                        return (
+                            <motion.div
+                                key={rIdx}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: rIdx * 0.1 }}
+                                className="w-full"
+                            >
+                                <h3
+                                    className="font-bold mb-6 text-white border-b-2 border-purple-500/50 pb-2 inline-block px-4"
+                                    style={{ fontSize: config.fonts.roundTitle }}
+                                >
+                                    {round.title}
+                                </h3>
+                                <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 md:gap-3">
+                                    {roundQuestions.map((q) => (
+                                        <QuestionCard key={q.id} q={q} />
+                                    ))}
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <motion.div
+                    className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 md:gap-3 max-w-7xl w-full px-2 md:px-4"
+                    initial="hidden"
+                    animate="show"
+                    variants={{
+                        hidden: { opacity: 0 },
+                        show: {
+                            opacity: 1,
+                            transition: {
+                                staggerChildren: 0.02
+                            }
+                        }
+                    }}
+                >
+                    {questions.map((q) => (
+                        <QuestionCard key={q.id} q={q} />
+                    ))}
+                </motion.div>
+            )}
+
+            <motion.button
+                onClick={() => {
+                    sounds.select();
+                    if (confirm('Are you sure you want to reset all progress?')) {
+                        resetProgress();
+                    }
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="mt-12 btn-secondary flex items-center gap-2 group border-red-500/30 text-red-400 hover:bg-red-950/30 hover:text-red-300"
+            >
+                <Trash2 size={18} />
+                Reset Progress
+            </motion.button>
+        </div>
+    );
+}
