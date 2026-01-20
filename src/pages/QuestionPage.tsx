@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Eye, EyeOff, Timer, Play, Pause, RotateCcw, Plus, Minus, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Timer, Play, Pause, RotateCcw, Plus, Minus, ArrowRight, Maximize, Minimize, LayoutGrid, X } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useQuiz } from '../context/QuizContext';
 import { sounds } from '../utils/sounds';
@@ -21,10 +21,59 @@ export default function QuestionPage() {
     }
 
     const [showAnswer, setShowAnswer] = useState(false);
-    const { markAsVisited } = useQuiz();
+    const { markAsVisited, visitedIds } = useQuiz();
 
     // Dynamic Font Scaling
     const [scale, setScale] = useState(1);
+
+    // Fullscreen State
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Quick Peek State
+    const [showQuickPeek, setShowQuickPeek] = useState(false);
+
+    // Ref to track if fullscreen exit was intentional (via our button/F key)
+    const intentionalExitRef = useRef(false);
+
+    // Fullscreen Toggle Handler
+    const toggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().then(() => {
+                setIsFullscreen(true);
+            }).catch((err) => {
+                console.error('Fullscreen error:', err);
+            });
+        } else {
+            // Mark this as intentional exit
+            intentionalExitRef.current = true;
+            document.exitFullscreen().then(() => {
+                setIsFullscreen(false);
+                intentionalExitRef.current = false;
+            });
+        }
+    }, []);
+
+    // Listen for fullscreen changes - re-enter if exited unintentionally (Esc key)
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const currentlyFullscreen = !!document.fullscreenElement;
+
+            // If we just exited fullscreen and it wasn't intentional, re-enter!
+            if (!currentlyFullscreen && isFullscreen && !intentionalExitRef.current) {
+                // Small delay to avoid browser blocking rapid fullscreen requests
+                setTimeout(() => {
+                    document.documentElement.requestFullscreen().catch(() => {
+                        // If re-enter fails, just update state
+                        setIsFullscreen(false);
+                    });
+                }, 50);
+            } else {
+                setIsFullscreen(currentlyFullscreen);
+            }
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, [isFullscreen]);
 
     // Timer State
     const [timeLeft, setTimeLeft] = useState(config.timer.defaultDuration);
@@ -98,7 +147,23 @@ export default function QuestionPage() {
                 e.preventDefault();
                 handleToggleAnswer();
             }
+
+            // Escape key handling
             if (e.code === 'Escape') {
+                // If quick peek modal is open, close it first (don't do anything else)
+                if (showQuickPeek) {
+                    e.preventDefault();
+                    setShowQuickPeek(false);
+                    return; // Stop here, don't process further
+                }
+
+                // If in fullscreen, don't navigate back - let user use the back button or stay
+                // This prevents accidental navigation when Esc exits fullscreen
+                if (isFullscreen) {
+                    return; // Esc will exit fullscreen (browser default), but won't navigate
+                }
+
+                // Normal mode: Escape goes back
                 handleBack();
             }
 
@@ -108,10 +173,20 @@ export default function QuestionPage() {
                 setTimeLeft(config.timer.defaultDuration);
                 setIsActive(false);
             }
+
+            // Fullscreen Toggle (F key)
+            if (e.key.toLowerCase() === 'f') {
+                toggleFullscreen();
+            }
+
+            // Quick Peek Toggle (Q key)
+            if (e.key.toLowerCase() === 'q') {
+                setShowQuickPeek(prev => !prev);
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleBack, handleToggleAnswer, config.timer.defaultDuration]);
+    }, [handleBack, handleToggleAnswer, config.timer.defaultDuration, showQuickPeek, toggleFullscreen, isFullscreen]);
 
 
     if (!question) return null;
@@ -120,6 +195,18 @@ export default function QuestionPage() {
         <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden text-white">
             <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] -z-10 pointer-events-none" />
             <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
+
+            {/* Fullscreen Toggle Button - Fixed Top Right */}
+            <button
+                onClick={toggleFullscreen}
+                className="fixed top-4 right-4 z-50 p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group"
+                title={isFullscreen ? 'Exit Fullscreen (F)' : 'Enter Fullscreen (F)'}
+            >
+                {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                <span className="absolute -bottom-8 right-0 text-xs bg-black/80 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Press F
+                </span>
+            </button>
 
             <motion.div
                 className="max-w-5xl w-full glass-panel p-6 md:p-12 relative flex flex-col md:flex-row gap-8"
@@ -130,9 +217,23 @@ export default function QuestionPage() {
                 {/* Main Question Content */}
                 <div className="flex-1">
                     <div className="mb-8">
-                        <button onClick={handleBack} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group">
-                            <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Back to Grid <span className="text-xs border border-gray-600 px-1 rounded mx-2 opacity-50 hidden md:inline">ESC</span>
-                        </button>
+                        {/* Header Toolbar */}
+                        <div className="flex items-center gap-3 mb-6">
+                            <button onClick={handleBack} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group">
+                                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Back to Grid <span className="text-xs border border-gray-600 px-1 rounded mx-2 opacity-50 hidden md:inline">ESC</span>
+                            </button>
+
+                            {/* Quick Peek Button */}
+                            <button
+                                onClick={() => setShowQuickPeek(true)}
+                                className="ml-auto flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group"
+                                title="Quick Peek All Questions (Q)"
+                            >
+                                <LayoutGrid size={16} />
+                                <span className="hidden md:inline text-sm">Overview</span>
+                                <span className="text-xs border border-gray-600 px-1 rounded opacity-50 hidden md:inline">Q</span>
+                            </button>
+                        </div>
 
                         {roundTitle && (
                             <div className="text-purple-400 text-sm font-bold uppercase tracking-widest mb-2 border-l-2 border-purple-500 pl-3">
@@ -254,11 +355,95 @@ export default function QuestionPage() {
                     </button>
 
                     <div className="text-[10px] text-gray-600 text-center font-mono mt-4">
-                        [T] Timer • [R] Reset • [-/+] Zoom • [0] Reset Zoom
+                        [T] Timer • [R] Reset • [-/+] Zoom • [0] Reset Zoom • [F] Fullscreen • [Q] Overview
                     </div>
 
                 </div>
             </motion.div >
+
+            {/* Quick Peek Modal */}
+            <AnimatePresence>
+                {showQuickPeek && (
+                    <motion.div
+                        className="fixed inset-0 z-[100] flex items-center justify-center"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        {/* Backdrop */}
+                        <div
+                            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                            onClick={() => setShowQuickPeek(false)}
+                        />
+
+                        {/* Modal Content */}
+                        <motion.div
+                            className="relative z-10 w-[95vw] max-w-6xl max-h-[90vh] overflow-y-auto rounded-2xl bg-gray-900/95 border border-white/10 p-6 md:p-8"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">Questions Overview</h2>
+                                    <p className="text-gray-400 text-sm mt-1">Click any question to jump to it • Current: Q{questionId}</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowQuickPeek(false)}
+                                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                                    title="Close (Esc)"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            {/* Questions Grid */}
+                            <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 md:gap-3">
+                                {questions.map((q) => {
+                                    const isVisited = visitedIds.includes(q.id);
+                                    const isCurrent = q.id === questionId;
+                                    return (
+                                        <button
+                                            key={q.id}
+                                            onClick={() => {
+                                                sounds.select();
+                                                setShowQuickPeek(false);
+                                                navigate(`/question/${q.id}`);
+                                            }}
+                                            className={`
+                                                aspect-square flex items-center justify-center rounded-xl font-bold text-lg
+                                                transition-all duration-200 border relative overflow-hidden
+                                                ${isCurrent
+                                                    ? 'bg-purple-600 border-purple-400 text-white ring-2 ring-purple-400 ring-offset-2 ring-offset-gray-900'
+                                                    : isVisited
+                                                        ? 'bg-red-900/30 border-red-800/40 text-gray-500'
+                                                        : 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-purple-500 hover:scale-105'
+                                                }
+                                            `}
+                                        >
+                                            {isVisited && !isCurrent && (
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+                                                    <div className="w-full h-[2px] bg-red-500/50 rotate-45 absolute" />
+                                                    <div className="w-full h-[2px] bg-red-500/50 -rotate-45 absolute" />
+                                                </div>
+                                            )}
+                                            <span className="relative z-10">{q.id}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Footer hint */}
+                            <div className="mt-6 text-center text-xs text-gray-500">
+                                Press <kbd className="px-1.5 py-0.5 bg-white/10 rounded border border-white/20">Q</kbd> or <kbd className="px-1.5 py-0.5 bg-white/10 rounded border border-white/20">Esc</kbd> to close
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }
