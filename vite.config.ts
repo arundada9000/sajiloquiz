@@ -8,16 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: [
-        "16x16.png",
-        "32x32.png",
-        "48x48.png",
-        "152x152.png",
-        "167x167.png",
-        "180x180.png",
-        "192x192.png",
-        "512x512.png",
-      ],
+      includeAssets: ["16x16.png", "512x512.png"],
       manifest: {
         name: "Sajilo Quiz Master",
         short_name: "Sajilo Quiz",
@@ -27,7 +18,7 @@ export default defineConfig({
         display: "standalone",
         icons: [
           {
-            src: "icon.svg",
+            src: "512x512.png",
             sizes: "any",
             type: "image/svg+xml",
             purpose: "any maskable",
