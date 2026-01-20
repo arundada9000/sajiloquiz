@@ -188,10 +188,11 @@ export default function GridPage() {
                 </motion.div>
             )}
 
-            <div className="mt-12 flex gap-4">
-                <Link to="/admin" className="btn-secondary flex items-center gap-2 border-white/10 text-gray-400 hover:text-white hover:bg-white/10">
-                    <Settings size={18} />
-                    Admin Panel
+            <div className="mt-12 flex flex-wrap justify-center gap-3 md:gap-4">
+                <Link to="/admin" className="btn-secondary flex items-center gap-2 border-white/10 text-gray-400 hover:text-white hover:bg-white/10 text-sm px-3 py-2">
+                    <Settings size={16} />
+                    <span className="hidden sm:inline">Admin Panel</span>
+                    <span className="sm:hidden">Admin</span>
                 </Link>
                 <motion.button
                     onClick={() => {
@@ -200,10 +201,11 @@ export default function GridPage() {
                             resetProgress();
                         }
                     }}
-                    className="btn-secondary flex items-center gap-2 group border-red-500/30 text-red-400 hover:bg-red-950/30 hover:text-red-300"
+                    className="btn-secondary flex items-center gap-2 group border-red-500/30 text-red-400 hover:bg-red-950/30 hover:text-red-300 text-sm px-3 py-2"
                 >
-                    <Trash2 size={18} />
-                    Reset Progress
+                    <Trash2 size={16} />
+                    <span className="hidden sm:inline">Reset Progress</span>
+                    <span className="sm:hidden">Reset</span>
                 </motion.button>
 
                 {installPrompt && (
@@ -211,10 +213,10 @@ export default function GridPage() {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         onClick={handleInstall}
-                        className="btn-primary flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/50"
+                        className="btn-primary flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/50 text-sm px-3 py-2"
                     >
-                        <Download size={18} />
-                        Install App
+                        <Download size={16} />
+                        Install
                     </motion.button>
                 )}
             </div>
