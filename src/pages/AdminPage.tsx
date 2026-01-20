@@ -508,11 +508,14 @@ function HelpGuide() {
                 <ShortcutItem keyBind="] or +" action="Increase Text Size" />
                 <ShortcutItem keyBind="[ or -" action="Decrease Text Size" />
                 <ShortcutItem keyBind="0" action="Reset Text Size" />
+                <ShortcutItem keyBind="Alt + Click" action="Re-open Visited Question" />
             </div>
 
             <SectionTitle title="Quick Tips" />
             <ul className="space-y-2 list-disc pl-5">
                 <li><strong className="text-white">Rounds:</strong> You can add logic for Rounds in the Settings tab. Assign questions to rounds to auto-generate IDs (e.g., Round 1 starts at 1, Round 2 starts at 11).</li>
+                <li><strong className="text-white">Media:</strong> Images and Audio are auto-compressed. For large videos, use external links or the public folder.</li>
+                <li><strong className="text-white">Install:</strong> Click 'Install App' on the main screen to install this quiz as a native application.</li>
                 <li><strong className="text-white">Exporting:</strong> Always export your data ("Backup") before clearing browsing data or switching devices.</li>
                 <li><strong className="text-white">Offline:</strong> This app works offline! You can disconnect from the internet after loading it.</li>
             </ul>

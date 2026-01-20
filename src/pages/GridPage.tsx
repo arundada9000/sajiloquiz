@@ -1,8 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import { useQuiz } from '../context/QuizContext';
-import { Trash2, Trophy, Target, ListChecks, Settings } from 'lucide-react';
+import { Trash2, Trophy, Target, ListChecks, Settings, Download } from 'lucide-react';
 import { sounds } from '../utils/sounds';
 
 export default function GridPage() {
@@ -58,6 +59,28 @@ export default function GridPage() {
         );
     };
 
+    // --- PWA Install Logic ---
+    const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            e.preventDefault();
+            setInstallPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstall = () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        installPrompt.userChoice.then((choiceResult: any) => {
+            if (choiceResult.outcome === 'accepted') {
+                setInstallPrompt(null);
+            }
+        });
+    };
+
     return (
         <div className="min-h-screen p-4 md:p-8 flex flex-col items-center">
             <motion.div
@@ -74,10 +97,10 @@ export default function GridPage() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 }}
-                className="grid grid-cols-3 gap-2 md:flex md:gap-8 mb-6 md:mb-10 w-full max-w-4xl"
+                className="flex flex-wrap justify-center gap-2 md:gap-8 mb-6 md:mb-10 w-full max-w-4xl"
             >
                 {/* ... Stats blocks ... */}
-                <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4 md:min-w-[160px]">
+                <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 min-w-[100px] md:min-w-[160px]">
                     {/* ... Icon ... */}
                     <div className="p-2 md:p-3 rounded-full bg-purple-500/20 text-purple-300">
                         <Trophy className="w-4 h-4 md:w-6 md:h-6" />
@@ -88,7 +111,7 @@ export default function GridPage() {
                     </div>
                 </div>
 
-                <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4 md:min-w-[160px]">
+                <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 min-w-[100px] md:min-w-[160px]">
                     {/* ... Icon ... */}
                     <div className="p-2 md:p-3 rounded-full bg-emerald-500/20 text-emerald-300">
                         <Target className="w-4 h-4 md:w-6 md:h-6" />
@@ -99,7 +122,7 @@ export default function GridPage() {
                     </div>
                 </div>
 
-                <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4 md:min-w-[160px]">
+                <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 min-w-[100px] md:min-w-[160px]">
                     {/* ... Icon ... */}
                     <div className="p-2 md:p-3 rounded-full bg-blue-500/20 text-blue-300">
                         <ListChecks className="w-4 h-4 md:w-6 md:h-6" />
@@ -182,6 +205,18 @@ export default function GridPage() {
                     <Trash2 size={18} />
                     Reset Progress
                 </motion.button>
+
+                {installPrompt && (
+                    <motion.button
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        onClick={handleInstall}
+                        className="btn-primary flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/50"
+                    >
+                        <Download size={18} />
+                        Install App
+                    </motion.button>
+                )}
             </div>
         </div>
     );

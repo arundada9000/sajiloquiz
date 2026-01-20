@@ -1,6 +1,6 @@
 export const config = {
   // --- BRANDING ---
-  appName: "Sajilo Quiz Master",
+  appName: "Sajilo Quiz",
   companyName: "Sajilo Digital",
 
   // --- ROUNDS CONFIGURATION ---

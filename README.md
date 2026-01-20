@@ -1,70 +1,91 @@
-# Sajilo Quiz
+# Sajilo Quiz App 🚀
 
-A quiz app, offline-capable quiz application designed for hosting live events, competitions, and trivia nights. Built with **React**, **TypeScript**, and **Vite**, featuring a stunning glassmorphic UI and robust admin controls.
-
-![Sajilo Quiz Demo](./public/icon.svg)
+A premium, interactive Quiz Application built for standard quizzes, competitions, and presentations. Designed with a futuristic aesthetic and robust offline capabilities.
 
 ## ✨ Features
 
-- **🏆 Interactive Grid**: 50+ question grid with visited states and round selection.
-- **📱 Mobile Optimized**: Fully responsive Admin Panel and Game views.
-- **⚡ Offline Ready**: Works 100% offline as a PWA (Progressive Web App).
-- **🎨 Custom Branding**: Configurable titles, colors, and font sizes via Admin settings.
-- **🔊 Sound FX**: Integrated sound effects for interactions, timers, and reveals.
-- **⏱️ Smart Timer**: Built-in countdowns, pass timers, and auto-stop logic.
-- **🎹 Keyboard Shortcuts**: Power-user controls for seamless hosting.
-- **💾 Auto-Save**: All changes and progress persist automatically to local storage.
-- **🔄 Data Management**: Export and Import full quiz configurations as JSON.
+- **Futuristic UI**: Glassmorphism, smooth animations (Framer Motion), and responsive design.
+- **Admin Dashboard**: Manage questions, configure rounds, and customize branding directly from the app.
+- **Offline First**: All data is stored locally (`localStorage`). Works without internet once loaded.
+- **Multimedia Support**: Embed images and audio. Built-in compression for efficient storage.
+- **PWA Ready**: Installable as a native app on specific devices.
+- **Smart Shortcuts**: Keyboard controls for power users.
+- **Round Logic**: Group questions into rounds (e.g., Rapid Fire, General) or use a standard grid.
 
-## 🚀 Quick Start
+## 🛠️ Setup & Installation
 
-1.  **Install Dependencies**:
+### Option 1: Development
+1. Clone the repo.
+2. Run `npm install`.
+3. Run `npm run dev` to start the local server.
 
-    ```bash
-    npm install
-    ```
+### Option 2: Live Preview
+1. Run `npm run preview` to build and serve the production version locally.
 
-2.  **Run Development Server**:
-
-    ```bash
-    npm run dev
-    ```
-
-3.  **Build for Production**:
-    ```bash
-    npm run build
-    ```
-    _The `dist` folder can be served statically or opened directly._
-
-## ⌨️ Keyboard Shortcuts
-
-| Key       | Action               | Context       |
-| :-------- | :------------------- | :------------ |
-| **Space** | Reveal / Hide Answer | Question Page |
-| **ESC**   | Back to Grid         | Question Page |
-| **T**     | Start / Pause Timer  | Question Page |
-| **R**     | Reset Timer          | Question Page |
-| **] / +** | Increase Text Size   | Question Page |
-| **[ / -** | Decrease Text Size   | Question Page |
-| **0**     | Reset Text Size      | Question Page |
-
-## 🛠️ Admin Guide
-
-Access the Admin Panel by clicking **"Admin Panel"** in the footer of the main grid.
-
-1.  **Questions**: Add, Edit, or Delete questions. Assign them to Rounds for auto-ID generation.
-2.  **Settings**: Configure App Name, Timer Defaults, and Round structures.
-3.  **Appearance**: Fine-tune font sizes for different elements (Questions, Answers, Timer).
-4.  **Backup**: Export your data before making big changes.
-
-## 📦 Tech Stack
-
-- **Framework**: React 18 + Vite
-- **Language**: TypeScript
-- **Styling**: TailwindCSS + Framer Motion
-- **Icons**: Lucide React
-- **Routers**: React Router v6
+### Option 3: Install as App (PWA)
+1. Open the app in a supported browser (Chrome, Edge).
+2. Click the **"Install App"** button (next to Reset Progress) or use the browser's install icon in the address bar.
 
 ---
 
-_Built with ❤️ for Sajilo Digital by CTO Arun Neupane_
+## 🎮 User Guide
+
+### Navigation
+- **Grid View**: Main hub. Click a number to open a question.
+- **Rounds**: If enabled, questions are grouped by round headers.
+- **Question View**: Displays the question. Spacebar to reveal answer.
+- **Back**: Press `ESC` or click Back to return to the grid.
+
+### Keyboard Shortcuts
+| Key | Action |
+| :--- | :--- |
+| **Space** | Reveal / Hide Answer |
+| **ESC** | Back to Grid / Close Modal |
+| **T** | Start / Pause Timer |
+| **R** | Reset Timer |
+| **[** or **-** | Decrease Text Size |
+| **]** or **+** | Increase Text Size |
+| **0** | Reset Text Size |
+| **Alt + Click**| Force re-open a visited question |
+
+---
+
+## 🛡️ Admin Guide
+
+Access the Admin Panel via the **Settings** button in the footer.
+
+### 1. Question Manager
+- **Add**: Create new questions. Assign to Rounds automatically or manually.
+- **Media**: Upload images or audio. 
+  - *Images*: Auto-compressed to 800px JPEG.
+  - *Audio*: Auto-converted to Mono 16kHz WAV for small size.
+- **Edit/Delete**: Modify existing questions.
+
+### 2. General Settings
+- **Branding**: Change App Name and Company Name.
+- **Timer**: Set default durations and auto-start behavior.
+- **Rounds**: Enable/Disable rounds. Define ranges (e.g., Round 1: Q1-10).
+
+### 3. Appearance
+- **Typography**: Adjust font sizes for different screens (Grid, Questions, Answers).
+
+### 4. Backup & Restore
+- **Export**: Download your entire quiz configuration as a `.json` file. **Do this often!**
+- **Import**: Restore a backup (Drag & drop support).
+- **Reset**: Wipe all local data and return to defaults.
+- **Storage**: Monitor browser capability (Limit is usually ~5MB).
+
+---
+
+## 🎨 Customization
+
+### Icons
+Replace `public/icon.svg` and `public/pwa-192x192.png` etc. with your own logo.
+
+### Colors
+Modify `src/index.css` to change the global color variables and gradients.
+
+---
+
+### 📝 License
+Built by Sajilo Digital. Free for personal and educational use.
