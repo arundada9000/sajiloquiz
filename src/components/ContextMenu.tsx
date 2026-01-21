@@ -191,10 +191,98 @@ export default function ContextMenu({
         }
     ];
 
-    const RenderItems = ({ items, level = 0, parentPath = [] }: { items: MenuItem[], level?: number, parentPath?: string[] }) => (
-        <div className="flex flex-col py-1.5">
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const clearHoverTimeout = () => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+        }
+    };
+
+    const handleMouseEnter = (path: string[]) => {
+        clearHoverTimeout();
+        setHoverPath(path);
+    };
+
+    const handleMouseLeave = (level: number, currentItemPath: string[]) => {
+        clearHoverTimeout();
+        hoverTimeoutRef.current = setTimeout(() => {
+            // Only clear if we're still on the same path or moving out entirely
+            setHoverPath(prev => {
+                if (prev.length > level && prev[level] === currentItemPath[level]) {
+                    return currentItemPath.slice(0, level);
+                }
+                return prev;
+            });
+        }, 500); // Generous 500ms exit grace period
+    };
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                ref={menuRef}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="fixed z-[300] min-w-[190px] rounded-xl glass-panel border border-[var(--card-border)] shadow-2xl"
+                style={{ left: `${position.x}px`, top: `${position.y}px` }}
+                onContextMenu={(e) => e.preventDefault()}
+                onClick={(e) => e.stopPropagation()}
+                onMouseEnter={clearHoverTimeout}
+                onMouseLeave={() => {
+                    clearHoverTimeout();
+                    hoverTimeoutRef.current = setTimeout(() => setHoverPath([]), 500);
+                }}
+            >
+                <RenderItems
+                    items={menuItems}
+                    hoverPath={hoverPath}
+                    submenuSide={submenuSide}
+                    onAction={handleAction}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                    clearHoverTimeout={clearHoverTimeout}
+                />
+
+                {/* Social Links Row */}
+                <div className="flex items-center justify-around p-2 border-t border-[var(--card-border)] bg-[var(--card-bg)] rounded-b-xl">
+                    <SocialIcon icon={<Instagram size={14} />} href="https://www.instagram.com/sajilo_digital" />
+                    <SocialIcon icon={<Facebook size={14} />} href="https://www.facebook.com/profile.php?id=61579846778258" />
+                    <SocialIcon icon={<Github size={14} />} href="https://github.com/sajhilodigital" />
+                    <SocialIcon icon={<Youtube size={14} />} href="https://www.youtube.com/@sajilo_digital" />
+                </div>
+            </motion.div>
+        </AnimatePresence>
+    );
+}
+
+// Separate component to prevent re-creation/flickering
+function RenderItems({
+    items,
+    level = 0,
+    parentPath = [],
+    hoverPath,
+    submenuSide,
+    onAction,
+    onMouseEnter,
+    onMouseLeave,
+    clearHoverTimeout
+}: {
+    items: MenuItem[],
+    level?: number,
+    parentPath?: string[],
+    hoverPath: string[],
+    submenuSide: 'right' | 'left',
+    onAction: (action?: () => void) => void,
+    onMouseEnter: (path: string[]) => void,
+    onMouseLeave: (level: number, path: string[]) => void,
+    clearHoverTimeout: () => void
+}) {
+    return (
+        <div className="flex flex-col py-1.5" onMouseEnter={clearHoverTimeout}>
             {items.map((item, idx) => {
-                if (item.divider) return <div key={idx} className="my-1.5 h-px bg-white/10 mx-2" />;
+                if (item.divider) return <div key={idx} className="my-1.5 h-px bg-[var(--card-border)] mx-2" />;
 
                 const currentPath = [...parentPath, item.label || ''];
                 const isHovered = hoverPath[level] === (item.label || '');
@@ -204,25 +292,23 @@ export default function ContextMenu({
                     <div
                         key={idx}
                         className="relative"
-                        onMouseEnter={() => {
-                            const newPath = [...parentPath, item.label || ''];
-                            setHoverPath(newPath);
-                        }}
+                        onMouseEnter={() => onMouseEnter(currentPath)}
+                        onMouseLeave={() => onMouseLeave(level, currentPath)}
                     >
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (!hasSubmenu) handleAction(item.action);
+                                if (!hasSubmenu) onAction(item.action);
                             }}
                             disabled={item.disabled}
-                            className={`w-full px-4 py-1.5 flex items-center justify-between gap-3 text-sm transition-colors ${item.disabled ? 'text-gray-600' : 'text-gray-200 hover:bg-white/10 hover:text-white'
-                                } ${isHovered && hasSubmenu ? 'bg-white/10 text-white' : ''}`}
+                            className={`w-full px-4 py-1.5 flex items-center justify-between gap-3 text-sm transition-colors ${item.disabled ? 'text-gray-500/50' : 'text-[rgb(var(--text-secondary))] hover:bg-purple-500/10 hover:text-[rgb(var(--text-primary))]'
+                                } ${isHovered && hasSubmenu ? 'bg-purple-500/10 text-[rgb(var(--text-primary))]' : ''}`}
                         >
                             <div className="flex items-center gap-3">
                                 {item.icon}
                                 <span>{item.label}</span>
                             </div>
-                            {item.active && <CheckCircle2 size={12} className="text-purple-400" />}
+                            {item.active && <CheckCircle2 size={12} className="text-purple-500" />}
                             {hasSubmenu && <ChevronRight size={12} />}
                         </button>
 
@@ -232,12 +318,20 @@ export default function ContextMenu({
                                     initial={{ opacity: 0, x: submenuSide === 'right' ? -5 : 5 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: submenuSide === 'right' ? -5 : 5 }}
-                                    className={`absolute ${submenuSide === 'right' ? 'left-full ml-0.5' : 'right-full mr-0.5'} top-[-6px] min-w-[180px] rounded-xl glass-panel border border-white/20 shadow-2xl z-[301]`}
-                                    onMouseLeave={() => {
-                                        // Only clear if mouse isn't moving to another item in the same level
-                                    }}
+                                    className={`absolute ${submenuSide === 'right' ? 'left-full ml-0.5' : 'right-full mr-0.5'} top-[-6px] min-w-[180px] rounded-xl glass-panel border border-[var(--card-border)] shadow-2xl z-[301]`}
+                                    onMouseEnter={clearHoverTimeout}
                                 >
-                                    <RenderItems items={item.submenu!} level={level + 1} parentPath={currentPath} />
+                                    <RenderItems
+                                        items={item.submenu!}
+                                        level={level + 1}
+                                        parentPath={currentPath}
+                                        hoverPath={hoverPath}
+                                        submenuSide={submenuSide}
+                                        onAction={onAction}
+                                        onMouseEnter={onMouseEnter}
+                                        onMouseLeave={onMouseLeave}
+                                        clearHoverTimeout={clearHoverTimeout}
+                                    />
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -245,32 +339,6 @@ export default function ContextMenu({
                 );
             })}
         </div>
-    );
-
-    return (
-        <AnimatePresence>
-            <motion.div
-                ref={menuRef}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                className="fixed z-[300] min-w-[190px] rounded-xl glass-panel border border-white/20 shadow-2xl"
-                style={{ left: `${position.x}px`, top: `${position.y}px` }}
-                onContextMenu={(e) => e.preventDefault()}
-                onClick={(e) => e.stopPropagation()}
-                onMouseLeave={() => setHoverPath([])}
-            >
-                <RenderItems items={menuItems} />
-
-                {/* Social Links Row */}
-                <div className="flex items-center justify-around p-2 border-t border-white/10 bg-white/5 rounded-b-xl">
-                    <SocialIcon icon={<Instagram size={14} />} href="https://www.instagram.com/sajilo_digital" />
-                    <SocialIcon icon={<Facebook size={14} />} href="https://www.facebook.com/profile.php?id=61579846778258" />
-                    <SocialIcon icon={<Github size={14} />} href="https://github.com/sajhilodigital" />
-                    <SocialIcon icon={<Youtube size={14} />} href="https://www.youtube.com/@sajilo_digital" />
-                </div>
-            </motion.div>
-        </AnimatePresence>
     );
 }
 
@@ -284,7 +352,7 @@ function SocialIcon({ icon, href }: { icon: React.ReactNode, href: string }) {
                 e.stopPropagation();
                 sounds.click();
             }}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+            className="p-1.5 rounded-lg text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-purple-500/10 transition-all active:scale-95"
         >
             {icon}
         </a>

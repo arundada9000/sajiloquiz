@@ -5,11 +5,13 @@ import GridPage from './pages/GridPage';
 import QuestionPage from './pages/QuestionPage';
 import AdminPage from './pages/AdminPage';
 import UpdateDetector from './components/UpdateDetector';
+import SidebarScoreboard from './components/SidebarScoreboard';
 
 function App() {
     return (
         <HashRouter>
             <UpdateDetector />
+            <SidebarScoreboard />
             <ScrollToTop />
             <AnimatePresence mode="wait">
                 <Routes>

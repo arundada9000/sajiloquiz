@@ -7,6 +7,7 @@ import {
   Upload,
   Plus,
   Trash2,
+  Users,
   Edit2,
   Check,
   X,
@@ -55,6 +56,7 @@ export default function AdminPage() {
     | "theme"
     | "sounds"
     | "data"
+    | "teams"
     | "help"
     | "about"
   >("questions");
@@ -127,6 +129,12 @@ export default function AdminPage() {
                 onClick={setActiveTab}
               />
               <TabButton
+                id="teams"
+                label="Teams"
+                active={activeTab}
+                onClick={setActiveTab}
+              />
+              <TabButton
                 id="help"
                 label="Help"
                 active={activeTab}
@@ -176,6 +184,9 @@ export default function AdminPage() {
                 config={appConfig}
                 questions={allQuestions}
               />
+            )}
+            {activeTab === "teams" && (
+              <TeamManagement />
             )}
             {activeTab === "help" && <HelpGuide />}
             {activeTab === "about" && <AboutCompany />}
@@ -297,6 +308,40 @@ function GeneralSettings({
           checked={tabConfig.timer.autoStartOnPass}
           onChange={(c) =>
             onUpdate({ timer: { ...tabConfig.timer, autoStartOnPass: c } })
+          }
+        />
+      </div>
+
+      <SectionTitle title="Scoring Weights" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <InputGroup
+          type="number"
+          label="Correct Answer (+)"
+          value={tabConfig.scoring.correct}
+          onChange={(v) =>
+            onUpdate({
+              scoring: { ...tabConfig.scoring, correct: Number(v) },
+            })
+          }
+        />
+        <InputGroup
+          type="number"
+          label="Bonus/Pass Answer (+)"
+          value={tabConfig.scoring.bonus}
+          onChange={(v) =>
+            onUpdate({
+              scoring: { ...tabConfig.scoring, bonus: Number(v) },
+            })
+          }
+        />
+        <InputGroup
+          type="number"
+          label="Penalty/Wrong Answer (-)"
+          value={tabConfig.scoring.penalty}
+          onChange={(v) =>
+            onUpdate({
+              scoring: { ...tabConfig.scoring, penalty: Number(v) },
+            })
           }
         />
       </div>
@@ -1760,4 +1805,76 @@ function bufferToWav(buffer: AudioBuffer) {
       view.setUint8(offset + i, string.charCodeAt(i));
     }
   }
+}
+
+function TeamManagement() {
+  const { teams, addTeam, deleteTeam } = useData();
+  const [newTeamName, setNewTeamName] = useState("");
+
+  const handleAdd = () => {
+    if (newTeamName.trim()) {
+      addTeam(newTeamName.trim());
+      setNewTeamName("");
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      <SectionTitle title="Manage Teams" />
+
+      <div className="p-6 rounded-xl bg-purple-500/10 border border-purple-500/20">
+        <h4 className="font-bold text-purple-300 mb-4 flex items-center gap-2">
+          <Users size={18} /> Add New Team
+        </h4>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Enter team name..."
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded px-4 py-2.5 text-[rgb(var(--text-primary))] focus:border-purple-500 outline-none transition-colors"
+            />
+          </div>
+          <button
+            onClick={handleAdd}
+            disabled={!newTeamName.trim()}
+            className="w-full sm:w-auto px-6 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed rounded font-bold transition-all flex items-center justify-center gap-2"
+          >
+            <Plus size={18} /> Add
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {teams.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-[rgb(var(--text-secondary))] opacity-50">
+            No teams added yet. Add your first team above.
+          </div>
+        ) : (
+          teams.map((team) => (
+            <div
+              key={team.id}
+              className="p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] flex items-center justify-between group hover:border-purple-500/30 transition-all"
+            >
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[rgb(var(--text-primary))] truncate">{team.name}</h3>
+                <p className="text-sm text-purple-400 font-black tracking-wider mt-1">Score: {team.score}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => deleteTeam(team.id)}
+                  className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  title="Remove Team"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
 }

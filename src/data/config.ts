@@ -24,6 +24,13 @@ export const config = {
     autoStartOnPass: true,   // Start timer automatically when "Pass" is clicked?
   },
 
+  // --- SCORING CONFIGURATION ---
+  scoring: {
+    correct: 10,
+    bonus: 5,
+    penalty: -2
+  },
+
   // --- THEME CONFIGURATION ---
   theme: {
     mode: "dark",           // "light" | "dark" | "auto"

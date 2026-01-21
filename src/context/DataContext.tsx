@@ -10,6 +10,12 @@ export type Round = {
     range: [number, number];
 };
 
+export type Team = {
+    id: string;
+    name: string;
+    score: number;
+};
+
 export type AppConfig = {
     appName: string;
     companyName: string;
@@ -20,6 +26,11 @@ export type AppConfig = {
         passDuration: number;
         autoStartOnOpen: boolean;
         autoStartOnPass: boolean;
+    };
+    scoring: {
+        correct: number;
+        bonus: number;
+        penalty: number;
     };
     theme: {
         mode: 'light' | 'dark' | 'auto';
@@ -69,12 +80,21 @@ type DataContextType = {
     resetData: () => void;
     importData: (jsonData: string) => boolean;
     exportData: () => void;
+    // Scoresheet additions
+    teams: Team[];
+    activeTeamId: string | null;
+    addTeam: (name: string) => void;
+    deleteTeam: (id: string) => void;
+    updateScore: (teamId: string, delta: number) => void;
+    setActiveTeam: (id: string | null) => void;
 };
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const STORAGE_KEY_CONFIG = 'quiz_master_config_v1';
 const STORAGE_KEY_QUESTIONS = 'quiz_master_questions_v1';
+const STORAGE_KEY_TEAMS = 'quiz_master_teams_v1';
+const STORAGE_KEY_ACTIVE_TEAM = 'quiz_master_active_team_v1';
 
 export function DataProvider({ children }: { children: ReactNode }) {
     // Initialize Config
@@ -106,6 +126,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     });
 
+    const [teams, setTeams] = useState<Team[]>(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY_TEAMS);
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error('Failed to load teams from storage:', error);
+            return [];
+        }
+    });
+
+    const [activeTeamId, setActiveTeamId] = useState<string | null>(() => {
+        try {
+            return localStorage.getItem(STORAGE_KEY_ACTIVE_TEAM);
+        } catch (error) {
+            return null;
+        }
+    });
+
     // Persist changes
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(appConfig));
@@ -114,6 +152,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_QUESTIONS, JSON.stringify(allQuestions));
     }, [allQuestions]);
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(teams));
+    }, [teams]);
+
+    useEffect(() => {
+        if (activeTeamId) localStorage.setItem(STORAGE_KEY_ACTIVE_TEAM, activeTeamId);
+        else localStorage.removeItem(STORAGE_KEY_ACTIVE_TEAM);
+    }, [activeTeamId]);
 
     const updateConfig = (newConfig: Partial<AppConfig>) => {
         setAppConfig(prev => {
@@ -236,6 +283,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
         URL.revokeObjectURL(url);
     };
 
+    const addTeam = (name: string) => {
+        const newTeam: Team = {
+            id: Date.now().toString(),
+            name,
+            score: 0
+        };
+        setTeams(prev => [...prev, newTeam]);
+    };
+
+    const deleteTeam = (id: string) => {
+        setTeams(prev => prev.filter(t => t.id !== id));
+        if (activeTeamId === id) setActiveTeamId(null);
+    };
+
+    const updateScore = (teamId: string, delta: number) => {
+        setTeams(prev => prev.map(t => t.id === teamId ? { ...t, score: t.score + delta } : t));
+    };
+
+    const setActiveTeam = (id: string | null) => {
+        setActiveTeamId(id);
+    };
+
     return (
         <DataContext.Provider value={{
             appConfig,
@@ -247,7 +316,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
             deleteQuestion,
             resetData,
             importData,
-            exportData
+            exportData,
+            teams,
+            activeTeamId,
+            addTeam,
+            deleteTeam,
+            updateScore,
+            setActiveTeam
         }}>
             {children}
         </DataContext.Provider>
