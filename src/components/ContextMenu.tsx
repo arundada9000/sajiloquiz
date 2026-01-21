@@ -191,7 +191,7 @@ export default function ContextMenu({
         }
     ];
 
-    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const clearHoverTimeout = () => {
         if (hoverTimeoutRef.current) {
