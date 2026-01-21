@@ -4,10 +4,12 @@ import { AnimatePresence } from 'framer-motion';
 import GridPage from './pages/GridPage';
 import QuestionPage from './pages/QuestionPage';
 import AdminPage from './pages/AdminPage';
+import UpdateDetector from './components/UpdateDetector';
 
 function App() {
     return (
         <HashRouter>
+            <UpdateDetector />
             <ScrollToTop />
             <AnimatePresence mode="wait">
                 <Routes>

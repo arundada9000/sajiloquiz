@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useData, Question, AppConfig, Round } from "../context/DataContext";
 import { sounds } from "../utils/sounds";
+import License from "../components/License";
 
 export default function AdminPage() {
   const {
@@ -44,6 +45,7 @@ export default function AdminPage() {
     deleteQuestion,
     resetData,
     importData,
+    exportData,
   } = useData();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<
@@ -170,6 +172,7 @@ export default function AdminPage() {
               <DataActions
                 onReset={resetData}
                 onImport={importData}
+                onExport={exportData}
                 config={appConfig}
                 questions={allQuestions}
               />
@@ -453,25 +456,25 @@ function SoundSettings({
     label: string;
     description: string;
   }> = [
-    {
-      key: "click",
-      label: "Click",
-      description: "Hover and interaction sounds",
-    },
-    { key: "select", label: "Select", description: "Question selection" },
-    { key: "reveal", label: "Reveal", description: "Answer reveal chime" },
-    { key: "back", label: "Back", description: "Navigation back" },
-    { key: "timerEnd", label: "Timer End", description: "Timer alarm" },
-    { key: "success", label: "Success", description: "Success actions" },
-    { key: "error", label: "Error", description: "Error feedback" },
-    { key: "warning", label: "Warning", description: "Warning alerts" },
-    { key: "pass", label: "Pass", description: "Pass button" },
-    {
-      key: "fullscreen",
-      label: "Fullscreen",
-      description: "Fullscreen toggle",
-    },
-  ];
+      {
+        key: "click",
+        label: "Click",
+        description: "Hover and interaction sounds",
+      },
+      { key: "select", label: "Select", description: "Question selection" },
+      { key: "reveal", label: "Reveal", description: "Answer reveal chime" },
+      { key: "back", label: "Back", description: "Navigation back" },
+      { key: "timerEnd", label: "Timer End", description: "Timer alarm" },
+      { key: "success", label: "Success", description: "Success actions" },
+      { key: "error", label: "Error", description: "Error feedback" },
+      { key: "warning", label: "Warning", description: "Warning alerts" },
+      { key: "pass", label: "Pass", description: "Pass button" },
+      {
+        key: "fullscreen",
+        label: "Fullscreen",
+        description: "Fullscreen toggle",
+      },
+    ];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -612,11 +615,10 @@ function ThemeSettings({
               onClick={() =>
                 onUpdate({ theme: { ...tabConfig.theme, mode: mode.id } })
               }
-              className={`p-6 rounded-xl border-2 transition-all ${
-                tabConfig.theme.mode === mode.id
-                  ? "border-purple-500 bg-purple-500/20"
-                  : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-purple-500/30 hover:bg-white/10"
-              }`}
+              className={`p-6 rounded-xl border-2 transition-all ${tabConfig.theme.mode === mode.id
+                ? "border-purple-500 bg-purple-500/20"
+                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-purple-500/30 hover:bg-white/10"
+                }`}
             >
               <mode.Icon className="w-12 h-12 mb-3 mx-auto" />
               <div className="font-bold text-white mb-1">{mode.name}</div>
@@ -638,11 +640,10 @@ function ThemeSettings({
                   theme: { ...tabConfig.theme, colorScheme: scheme.id },
                 })
               }
-              className={`p-6 rounded-xl border-2 transition-all relative overflow-hidden group ${
-                tabConfig.theme.colorScheme === scheme.id
-                  ? "border-purple-500 bg-[var(--card-bg)]"
-                  : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-white/20 hover:bg-white/10"
-              }`}
+              className={`p-6 rounded-xl border-2 transition-all relative overflow-hidden group ${tabConfig.theme.colorScheme === scheme.id
+                ? "border-purple-500 bg-[var(--card-bg)]"
+                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-white/20 hover:bg-white/10"
+                }`}
             >
               {/* Color preview */}
               <div className="flex gap-2 mb-3">
@@ -1070,11 +1071,13 @@ function QuestionManager({
 function DataActions({
   onReset,
   onImport,
+  onExport,
   config,
   questions,
 }: {
   onReset: any;
   onImport: any;
+  onExport: any;
   config: any;
   questions: any;
 }) {
@@ -1177,6 +1180,12 @@ function DataActions({
               onChange={setFileName}
             />
           </div>
+          <button
+            onClick={onExport}
+            className="w-full md:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded font-bold transition-colors flex items-center justify-center gap-2"
+          >
+            <Download size={18} /> One-Click Backup
+          </button>
           <button
             onClick={handleDownload}
             className="w-full md:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded font-bold transition-colors"
@@ -1484,6 +1493,9 @@ function AboutCompany() {
             />
           </a>
         </div>
+      </div>
+      <div className="pt-8">
+        <License />
       </div>
     </div>
   );

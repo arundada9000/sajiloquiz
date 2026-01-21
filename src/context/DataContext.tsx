@@ -68,6 +68,7 @@ type DataContextType = {
     deleteQuestion: (id: number) => void;
     resetData: () => void;
     importData: (jsonData: string) => boolean;
+    exportData: () => void;
 };
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -217,6 +218,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const exportData = () => {
+        const data = {
+            config: appConfig,
+            questions: allQuestions,
+            version: '1.0.0', // Optional versioning
+            timestamp: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `sajilo_quiz_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <DataContext.Provider value={{
             appConfig,
@@ -227,12 +246,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
             addQuestion,
             deleteQuestion,
             resetData,
-            importData
+            importData,
+            exportData
         }}>
             {children}
         </DataContext.Provider>
     );
-}
+};
 
 export function useData() {
     const context = useContext(DataContext);
