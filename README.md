@@ -20,14 +20,17 @@ A premium, interactive Quiz Application built for quizzes, competitions, and pre
 ## Setup & Installation
 
 ### Option 1: Development
+
 1. Clone the repo
 2. Run `npm install`
 3. Run `npm run dev` to start the local server
 
 ### Option 2: Live Preview
+
 1. Run `npm run preview` to build and serve the production version locally
 
 ### Option 3: Install as App (PWA)
+
 1. Open the app in a supported browser (Chrome, Edge)
 2. Click the **"Install App"** button or use the browser's install icon in the address bar
 
@@ -36,6 +39,7 @@ A premium, interactive Quiz Application built for quizzes, competitions, and pre
 ## User Guide
 
 ### Navigation
+
 - **Grid View**: Main hub. Click a number to open a question
 - **Rounds**: If enabled, questions are grouped by round headers
 - **Question View**: Displays the question. Spacebar to reveal answer
@@ -75,31 +79,37 @@ A premium, interactive Quiz Application built for quizzes, competitions, and pre
 Access the Admin Panel via the **Settings** button in the footer.
 
 ### 1. Question Manager
+
 - **Add**: Create new questions. Assign to Rounds automatically or manually
 - **Media**: Upload images or audio
-  - *Images*: Auto-compressed to 800px JPEG
-  - *Audio*: Auto-converted to Mono 16kHz WAV for small size
+  - _Images_: Auto-compressed to 800px JPEG
+  - _Audio_: Auto-converted to Mono 16kHz WAV for small size
 - **Edit/Delete**: Modify existing questions
 
 ### 2. General Settings
+
 - **Branding**: Change App Name and Company Name
 - **Timer**: Set default durations and auto-start behavior
 - **Rounds**: Enable/Disable rounds. Define ranges (e.g., Round 1: Q1-10)
 
 ### 3. Appearance
+
 - **Typography**: Adjust font sizes for different screens (Grid, Questions, Answers)
 
 ### 4. Theme
+
 - **Display Mode**: Choose Light, Dark, or Auto (follows system preference)
 - **Color Scheme**: Select from 6 color schemes with live preview
 - **Instant Updates**: Changes apply immediately
 
 ### 5. Sounds
+
 - **Master Control**: Enable/disable all sounds at once
 - **Individual Toggles**: Control each of the 11 sound effects separately
 - **Preview**: Test each sound before enabling
 
 ### 6. Backup & Restore
+
 - **Export**: Download your entire quiz configuration as a `.json` file. **Do this often!**
 - **Import**: Restore a backup (Drag & drop support)
 - **Reset**: Wipe all local data and return to defaults
@@ -110,16 +120,33 @@ Access the Admin Panel via the **Settings** button in the footer.
 ## Customization
 
 ### Icons
+
 Replace `public/icon.svg` and `public/pwa-192x192.png` with your own logo.
 
 ### Themes
+
 Use the built-in theme system in Admin → Theme tab to customize without editing code.
 
 ### Advanced Customization
+
 Modify `src/index.css` to change global styles or `src/utils/theme.ts` to add new color schemes.
 
 ---
 
 ## License
-Built by Sajilo Digital. Free for personal and educational use.
 
+Built by Sajilo Digital.
+
+## Team
+
+**Chairperson** : _Pramod Chaudhary_
+
+**CEO** : _Bal Gobind Chaudhary_
+
+**CTO** : _Arun Neupane_
+
+**QA** : _Sunil Paudyal_
+
+**Frontend Developer** : _Bijay Kumar CHaudhary_
+
+**Video Editor** : _Aashish GM_

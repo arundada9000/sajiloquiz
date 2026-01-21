@@ -453,25 +453,25 @@ function SoundSettings({
     label: string;
     description: string;
   }> = [
-      {
-        key: "click",
-        label: "Click",
-        description: "Hover and interaction sounds",
-      },
-      { key: "select", label: "Select", description: "Question selection" },
-      { key: "reveal", label: "Reveal", description: "Answer reveal chime" },
-      { key: "back", label: "Back", description: "Navigation back" },
-      { key: "timerEnd", label: "Timer End", description: "Timer alarm" },
-      { key: "success", label: "Success", description: "Success actions" },
-      { key: "error", label: "Error", description: "Error feedback" },
-      { key: "warning", label: "Warning", description: "Warning alerts" },
-      { key: "pass", label: "Pass", description: "Pass button" },
-      {
-        key: "fullscreen",
-        label: "Fullscreen",
-        description: "Fullscreen toggle",
-      },
-    ];
+    {
+      key: "click",
+      label: "Click",
+      description: "Hover and interaction sounds",
+    },
+    { key: "select", label: "Select", description: "Question selection" },
+    { key: "reveal", label: "Reveal", description: "Answer reveal chime" },
+    { key: "back", label: "Back", description: "Navigation back" },
+    { key: "timerEnd", label: "Timer End", description: "Timer alarm" },
+    { key: "success", label: "Success", description: "Success actions" },
+    { key: "error", label: "Error", description: "Error feedback" },
+    { key: "warning", label: "Warning", description: "Warning alerts" },
+    { key: "pass", label: "Pass", description: "Pass button" },
+    {
+      key: "fullscreen",
+      label: "Fullscreen",
+      description: "Fullscreen toggle",
+    },
+  ];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -612,10 +612,11 @@ function ThemeSettings({
               onClick={() =>
                 onUpdate({ theme: { ...tabConfig.theme, mode: mode.id } })
               }
-              className={`p-6 rounded-xl border-2 transition-all ${tabConfig.theme.mode === mode.id
-                ? "border-purple-500 bg-purple-500/20"
-                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-purple-500/30 hover:bg-white/10"
-                }`}
+              className={`p-6 rounded-xl border-2 transition-all ${
+                tabConfig.theme.mode === mode.id
+                  ? "border-purple-500 bg-purple-500/20"
+                  : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-purple-500/30 hover:bg-white/10"
+              }`}
             >
               <mode.Icon className="w-12 h-12 mb-3 mx-auto" />
               <div className="font-bold text-white mb-1">{mode.name}</div>
@@ -637,10 +638,11 @@ function ThemeSettings({
                   theme: { ...tabConfig.theme, colorScheme: scheme.id },
                 })
               }
-              className={`p-6 rounded-xl border-2 transition-all relative overflow-hidden group ${tabConfig.theme.colorScheme === scheme.id
-                ? "border-purple-500 bg-[var(--card-bg)]"
-                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-white/20 hover:bg-white/10"
-                }`}
+              className={`p-6 rounded-xl border-2 transition-all relative overflow-hidden group ${
+                tabConfig.theme.colorScheme === scheme.id
+                  ? "border-purple-500 bg-[var(--card-bg)]"
+                  : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-white/20 hover:bg-white/10"
+              }`}
             >
               {/* Color preview */}
               <div className="flex gap-2 mb-3">
@@ -685,11 +687,15 @@ function ThemeSettings({
 
       {/* Current Settings Summary */}
       <div className="p-4 rounded bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm">
-        <h5 className="font-bold text-[rgb(var(--text-primary))] mb-2">Current Theme</h5>
+        <h5 className="font-bold text-[rgb(var(--text-primary))] mb-2">
+          Current Theme
+        </h5>
         <div className="flex flex-wrap gap-3 text-sm">
           <div className="px-3 py-1 rounded-full bg-white/10 text-[rgb(var(--text-secondary))]">
             Mode:{" "}
-            <span className="font-bold text-[rgb(var(--text-primary))]">{tabConfig.theme.mode}</span>
+            <span className="font-bold text-[rgb(var(--text-primary))]">
+              {tabConfig.theme.mode}
+            </span>
           </div>
           <div className="px-3 py-1 rounded-full bg-white/10 text-[rgb(var(--text-secondary))]">
             Scheme:{" "}
@@ -1143,9 +1149,7 @@ function DataActions({
       {/* Storage Indicator */}
       <div className="p-4 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm">
         <div className="flex justify-between text-xs mb-2 text-[rgb(var(--text-secondary))] font-bold">
-          <span className="uppercase tracking-wider">
-            Browser Storage Left
-          </span>
+          <span className="uppercase tracking-wider">Browser Storage Left</span>
           <span>{usage.used.toFixed(2)} MB used / ~5.00 MB limit</span>
         </div>
         <div className="w-full bg-black/50 h-3 rounded-full overflow-hidden border border-[var(--card-border)]">
@@ -1280,35 +1284,41 @@ function HelpGuide() {
       <SectionTitle title="Quick Tips" />
       <ul className="space-y-2 list-disc pl-5">
         <li>
-          <strong className="text-[rgb(var(--text-primary))]">Theme:</strong> Customize your app's
-          look in Admin → Theme. Choose from 6 color schemes and light/dark
-          modes.
+          <strong className="text-[rgb(var(--text-primary))]">Theme:</strong>{" "}
+          Customize your app's look in Admin → Theme. Choose from 6 color
+          schemes and light/dark modes.
         </li>
         <li>
-          <strong className="text-[rgb(var(--text-primary))]">Sounds:</strong> Control all sound
-          effects in Admin → Sounds. Each sound can be toggled individually.
+          <strong className="text-[rgb(var(--text-primary))]">Sounds:</strong>{" "}
+          Control all sound effects in Admin → Sounds. Each sound can be toggled
+          individually.
         </li>
         <li>
-          <strong className="text-[rgb(var(--text-primary))]">Rounds:</strong> You can add logic for
-          Rounds in the Settings tab. Assign questions to rounds to
-          auto-generate IDs.
+          <strong className="text-[rgb(var(--text-primary))]">Rounds:</strong>{" "}
+          You can add logic for Rounds in the Settings tab. Assign questions to
+          rounds to auto-generate IDs.
         </li>
         <li>
-          <strong className="text-[rgb(var(--text-primary))]">Media:</strong> Images and Audio are
-          auto-compressed. For large videos, use external links or the public
-          folder.
+          <strong className="text-[rgb(var(--text-primary))]">Media:</strong>{" "}
+          Images and Audio are auto-compressed. For large videos, use external
+          links or the public folder.
         </li>
         <li>
-          <strong className="text-[rgb(var(--text-primary))]">Install:</strong> Click 'Install App'
-          on the main screen to install this quiz as a native application.
+          <strong className="text-[rgb(var(--text-primary))]">Install:</strong>{" "}
+          Click 'Install App' on the main screen to install this quiz as a
+          native application.
         </li>
         <li>
-          <strong className="text-[rgb(var(--text-primary))]">Exporting:</strong> Always export your
-          data ("Backup") before clearing browsing data or switching devices.
+          <strong className="text-[rgb(var(--text-primary))]">
+            Exporting:
+          </strong>{" "}
+          Always export your data ("Backup") before clearing browsing data or
+          switching devices.
         </li>
         <li>
-          <strong className="text-[rgb(var(--text-primary))]">Offline:</strong> This app works
-          offline! You can disconnect from the internet after loading it.
+          <strong className="text-[rgb(var(--text-primary))]">Offline:</strong>{" "}
+          This app works offline! You can disconnect from the internet after
+          loading it.
         </li>
       </ul>
     </div>
@@ -1413,11 +1423,16 @@ function AboutCompany() {
               icon={<MapPin size={18} />}
               text="Horizon Chowk, Butwal-11 Rupandehi, Nepal"
             />
-            <ContactInfo icon={<Phone size={18} />} text="+977-9811420975" />
-            <ContactInfo
-              icon={<Mail size={18} />}
-              text="info@sajilodigital.com.np"
-            />
+            <div className="flex flex-wrap gap-3">
+              <SocialLink
+                icon={<Phone size={18} />}
+                href="tel:+9779842977207"
+              />
+              <SocialLink
+                icon={<Mail size={18} />}
+                href="mailto:info@sajilodigital.com.np?subject=SajiloQuiz&cc=cc@email.com&body=I want to contact you from sajilo quiz app."
+              />
+            </div>
           </div>
           <div className="flex flex-wrap gap-3">
             <SocialLink
@@ -1488,8 +1503,12 @@ function ServiceCard({
       <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 group-hover:bg-purple-500/20 transition-all shadow-inner">
         {icon}
       </div>
-      <h4 className="font-bold text-[rgb(var(--text-primary))] mb-2 text-sm">{title}</h4>
-      <p className="text-[rgb(var(--text-secondary))] text-[11px] leading-relaxed">{desc}</p>
+      <h4 className="font-bold text-[rgb(var(--text-primary))] mb-2 text-sm">
+        {title}
+      </h4>
+      <p className="text-[rgb(var(--text-secondary))] text-[11px] leading-relaxed">
+        {desc}
+      </p>
     </div>
   );
 }
