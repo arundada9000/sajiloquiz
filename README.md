@@ -1,4 +1,4 @@
-# Sajilo Quiz App
+﻿# Sajilo Quiz App
 
 A premium, interactive Quiz Application built for quizzes, competitions, and presentations. Designed with a futuristic aesthetic and robust offline capabilities.
 
@@ -150,3 +150,9 @@ Built by Sajilo Digital.
 **Frontend Developer** : _Bijay Kumar CHaudhary_
 
 **Video Editor** : _Aashish GM_
+
+---
+
+## License
+
+This project is for educational and personal learning purposes only. Commercial use, public deployment, or any revenue-generating use requires explicit written permission from the author. See [LICENSE](LICENSE) for details.
