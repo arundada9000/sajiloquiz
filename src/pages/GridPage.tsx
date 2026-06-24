@@ -303,6 +303,63 @@ export default function GridPage() {
                         </motion.button>
                     )}
                 </div>
+
+                {/* About / guide content */}
+                <section className="mt-16 max-w-3xl mx-auto text-left bg-white/[0.03] border border-white/10 rounded-2xl p-6 md:p-8">
+                    <h2 className="text-xl font-bold text-white mb-3">What is Sajilo Quiz?</h2>
+                    <p className="text-gray-400 leading-relaxed mb-4">
+                        Sajilo Quiz is a free quiz presentation app for running live events: school and college
+                        competitions, office game nights, and classroom reviews. You build your questions and rounds
+                        in the admin panel, project the question grid on a big screen, and reveal questions one by
+                        one while the sidebar keeps team scores. It was built for real quiz competitions in Nepal,
+                        where venue internet can fail at the worst moment, so the whole app works completely offline
+                        once loaded.
+                    </p>
+
+                    <h2 className="text-xl font-bold text-white mb-3 mt-8">How to run a quiz with it</h2>
+                    <ul className="text-gray-400 leading-relaxed mb-4 list-disc pl-5 space-y-2">
+                        <li>Open the <strong className="text-gray-200">Admin Panel</strong> and add your questions, rounds, and any images or audio.</li>
+                        <li>Project this grid page on the venue screen. Press F for fullscreen.</li>
+                        <li>Click a numbered card to reveal its question. Answered cards are marked so you never repeat one.</li>
+                        <li>Keep scores in the team scoreboard sidebar as the rounds progress.</li>
+                        <li>Press ? anytime to see all keyboard shortcuts, and use Reset Progress to start a fresh session.</li>
+                    </ul>
+
+                    <h2 className="text-xl font-bold text-white mb-3 mt-8">Frequently asked questions</h2>
+                    <div className="space-y-4 text-gray-400 leading-relaxed">
+                        <div>
+                            <h3 className="font-semibold text-gray-200">Does it need internet during the event?</h3>
+                            <p>No. Install it (or just load it once) and everything, including your media, runs offline. That is the whole point of the app.</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-200">Where is my quiz data stored?</h3>
+                            <p>On your own device, in your browser's local storage. Nothing you create is uploaded to any server.</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-200">Can I use images and sound?</h3>
+                            <p>Yes. Questions support multimedia, and the app has built-in sound effects for reveals and results.</p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-200">Is it really free?</h3>
+                            <p>Yes. It began as a tool for events I helped run, and it is shared so anyone can use it.</p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Footer */}
+                <footer className="mt-10 pb-6 text-center text-sm text-gray-500">
+                    <p className="mb-2">
+                        <a href="/privacy.html" className="text-gray-400 hover:text-white underline-offset-4 hover:underline mx-2">Privacy Policy</a>
+                        <a href="/contact.html" className="text-gray-400 hover:text-white underline-offset-4 hover:underline mx-2">Contact</a>
+                        <a href="https://github.com/arundada9000/sajiloquiz" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white underline-offset-4 hover:underline mx-2">Source Code</a>
+                    </p>
+                    <p>
+                        &copy; {new Date().getFullYear()}{' '}
+                        <a href="https://arunneupane.netlify.app/" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300">Arun Neupane</a>
+                        {' '}| Reach me anytime:{' '}
+                        <a href="mailto:arunneupane0000@gmail.com" className="text-emerald-400 hover:text-emerald-300">arunneupane0000@gmail.com</a>
+                    </p>
+                </footer>
             </div>
             {/* Shortcuts Modal */}
             <ShortcutsModal
