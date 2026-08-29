@@ -1,12 +1,69 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useData } from '../context/DataContext';
+import { useData, Question } from '../context/DataContext';
 import { useQuiz } from '../context/QuizContext';
 import { Trash2, Trophy, Target, ListChecks, Settings, Download, Maximize, Minimize } from 'lucide-react';
 import { sounds } from '../utils/sounds';
 import ShortcutsModal from '../components/ShortcutsModal';
 import ContextMenu from '../components/ContextMenu';
+import { site } from '../config/site';
+
+// Type for the BeforeInstallPromptEvent (not available in default TS DOM lib)
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
+type QuestionCardProps = {
+  q: Question;
+  isVisited: boolean;
+  gridNumberFont: string;
+  onNavigate: (id: number, isVisited: boolean, force?: boolean) => void;
+};
+
+// Module-scope QuestionCard so it is not re-created on every GridPage render.
+const QuestionCard = memo(function QuestionCard({
+  q,
+  isVisited,
+  gridNumberFont,
+  onNavigate,
+}: QuestionCardProps) {
+  return (
+    <motion.div
+      variants={{ hidden: { opacity: 0, scale: 0.8 }, show: { opacity: 1, scale: 1 } }}
+      className="w-full"
+    >
+      <button
+        type="button"
+        aria-label={`Open question ${q.id}${isVisited ? ' (already answered, Alt+Click to reopen)' : ''}`}
+        className={`
+                aspect-square flex items-center justify-center rounded-[14px] font-bold w-full
+                transition-all duration-300 border relative overflow-hidden cursor-pointer
+                ${isVisited
+                    ? 'cell-visited opacity-80 hover:opacity-100'
+                    : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-primary))] backdrop-blur-md hover:bg-[var(--fill)] hover:border-[rgb(var(--color-primary))] hover:shadow-[0_0_20px_rgba(var(--color-primary),0.35)] hover:scale-105 shadow-sm'
+                }
+            `}
+        style={{ fontSize: gridNumberFont }}
+        onClick={(e) => {
+          // Allow navigation if NOT visited OR if Alt key is held.
+          if (!isVisited || e.altKey) {
+            onNavigate(q.id, isVisited, e.altKey);
+          }
+        }}
+        onMouseEnter={() => !isVisited && sounds.click()}
+      >
+        {isVisited && (
+          <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none">
+            <span className="cell-visited-badge" aria-hidden="true">&#10003;</span>
+          </div>
+        )}
+        <span className="relative z-10 drop-shadow-md">{q.id}</span>
+      </button>
+    </motion.div>
+  );
+});
 
 export default function GridPage() {
     const { appConfig: config, allQuestions: questions } = useData();
@@ -25,6 +82,13 @@ export default function GridPage() {
 
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+    // Navigation handler passed to memoized cards; depends on navigate.
+    const handleCardNavigate = useCallback((id: number, isVisited: boolean) => {
+        if (!isVisited) sounds.select();
+        else sounds.click();
+        navigate(`/question/${id}`);
+    }, [navigate]);
 
     // Fullscreen Toggle Handler
     const toggleFullscreen = useCallback(() => {
@@ -84,57 +148,13 @@ export default function GridPage() {
         return () => document.removeEventListener('contextmenu', handleContextMenu);
     }, []);
 
-    // Simple Helper Component for Question Cards
-    const QuestionCard = ({ q }: { q: typeof questions[0] }) => {
-        const isVisited = visitedIds.includes(q.id);
-        return (
-            <motion.div
-                variants={{ hidden: { opacity: 0, scale: 0.8 }, show: { opacity: 1, scale: 1 } }}
-                className="w-full"
-            >
-                <div
-                    className={`
-                aspect-square flex items-center justify-center rounded-xl font-bold w-full
-                transition-all duration-300 border relative overflow-hidden group cursor-pointer
-                ${isVisited
-                            ? 'bg-red-900/40 border-red-800/50 text-gray-500 cursor-not-allowed grayscale-[0.8]'
-                            : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-primary))] backdrop-blur-md hover:bg-white/20 hover:border-purple-500 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:scale-105 shadow-xl'
-                        }
-            `}
-                    style={{ fontSize: config.fonts.gridNumber }}
-                    onClick={(e) => {
-                        // Allow navigation if NOT visited OR if Alt key is held
-                        if (!isVisited || e.altKey) {
-                            e.preventDefault(); // Stop any default behavior
-                            if (isVisited) sounds.click();
-                            else sounds.select();
-                            navigate(`/question/${q.id}`);
-                        }
-                    }}
-                    onMouseEnter={() => !isVisited && sounds.click()}
-                >
-                    {!isVisited && (
-                        <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 via-transparent to-transparent opacity-50" />
-                    )}
-                    {isVisited && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-30 select-none pointer-events-none">
-                            <div className="w-full h-[2px] bg-red-500/50 rotate-45 absolute" />
-                            <div className="w-full h-[2px] bg-red-500/50 -rotate-45 absolute" />
-                        </div>
-                    )}
-                    <span className="relative z-10 drop-shadow-md">{q.id}</span>
-                </div>
-            </motion.div>
-        );
-    };
-
     // --- PWA Install Logic ---
-    const [installPrompt, setInstallPrompt] = useState<any>(null);
+    const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
     useEffect(() => {
-        const handler = (e: any) => {
+        const handler = (e: Event) => {
             e.preventDefault();
-            setInstallPrompt(e);
+            setInstallPrompt(e as BeforeInstallPromptEvent);
         };
         window.addEventListener('beforeinstallprompt', handler);
         return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -143,7 +163,7 @@ export default function GridPage() {
     const handleInstall = () => {
         if (!installPrompt) return;
         installPrompt.prompt();
-        installPrompt.userChoice.then((choiceResult: any) => {
+        installPrompt.userChoice.then((choiceResult) => {
             if (choiceResult.outcome === 'accepted') {
                 setInstallPrompt(null);
             }
@@ -155,8 +175,9 @@ export default function GridPage() {
             {/* Fullscreen Toggle Button - Fixed Top Right */}
             <button
                 onClick={toggleFullscreen}
-                className="fixed top-4 right-4 z-50 p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all group"
+                className="fixed top-4 right-4 z-50 p-3 rounded-full bg-[var(--material-regular)] backdrop-blur-md border border-[var(--separator)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[var(--fill)] transition-all group"
                 title={isFullscreen ? 'Exit Fullscreen (F)' : 'Enter Fullscreen (F)'}
+                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
                 {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
                 <span className="absolute -bottom-8 right-0 text-xs bg-black/80 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
@@ -184,8 +205,7 @@ export default function GridPage() {
                 >
                     {/* ... Stats blocks ... */}
                     <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 min-w-[100px] md:min-w-[160px]">
-                        {/* ... Icon ... */}
-                        <div className="p-2 md:p-3 rounded-full bg-purple-500/20 text-purple-300">
+                        <div className="p-2 md:p-3 rounded-full bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))]">
                             <Trophy className="w-4 h-4 md:w-6 md:h-6" />
                         </div>
                         <div className="text-center md:text-left">
@@ -195,8 +215,7 @@ export default function GridPage() {
                     </div>
 
                     <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 min-w-[100px] md:min-w-[160px]">
-                        {/* ... Icon ... */}
-                        <div className="p-2 md:p-3 rounded-full bg-emerald-500/20 text-emerald-300">
+                        <div className="p-2 md:p-3 rounded-full bg-[rgb(var(--success))]/15 text-[rgb(var(--success))]">
                             <Target className="w-4 h-4 md:w-6 md:h-6" />
                         </div>
                         <div className="text-center md:text-left">
@@ -206,8 +225,7 @@ export default function GridPage() {
                     </div>
 
                     <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 min-w-[100px] md:min-w-[160px]">
-                        {/* ... Icon ... */}
-                        <div className="p-2 md:p-3 rounded-full bg-blue-500/20 text-blue-300">
+                        <div className="p-2 md:p-3 rounded-full bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))]">
                             <ListChecks className="w-4 h-4 md:w-6 md:h-6" />
                         </div>
                         <div className="text-center md:text-left">
@@ -236,14 +254,20 @@ export default function GridPage() {
                                     className="w-full"
                                 >
                                     <h3
-                                        className="font-bold mb-6 text-[rgb(var(--text-primary))] border-b-2 border-purple-500/50 pb-2 inline-block px-4"
+                                        className="font-bold mb-6 text-[rgb(var(--text-primary))] border-b-2 border-[rgb(var(--color-primary))] pb-2 inline-block px-4"
                                         style={{ fontSize: config.fonts.roundTitle }}
                                     >
                                         {round.title}
                                     </h3>
                                     <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 md:gap-3">
                                         {roundQuestions.map((q) => (
-                                            <QuestionCard key={q.id} q={q} />
+                                            <QuestionCard
+                                                key={q.id}
+                                                q={q}
+                                                isVisited={visitedIds.includes(q.id)}
+                                                gridNumberFont={config.fonts.gridNumber}
+                                                onNavigate={handleCardNavigate}
+                                            />
                                         ))}
                                     </div>
                                 </motion.div>
@@ -266,13 +290,19 @@ export default function GridPage() {
                         }}
                     >
                         {questions.map((q) => (
-                            <QuestionCard key={q.id} q={q} />
+                            <QuestionCard
+                                key={q.id}
+                                q={q}
+                                isVisited={visitedIds.includes(q.id)}
+                                gridNumberFont={config.fonts.gridNumber}
+                                onNavigate={handleCardNavigate}
+                            />
                         ))}
                     </motion.div>
                 )}
 
                 <div className="mt-12 flex flex-wrap justify-center gap-3 md:gap-4">
-                    <Link to="/admin" className="btn-secondary flex items-center gap-2 border-white/10 text-gray-400 hover:text-white hover:bg-white/10 text-sm px-3 py-2">
+                    <Link to="/admin" className="btn-secondary flex items-center gap-2 text-sm px-3 py-2">
                         <Settings size={16} />
                         <span className="hidden sm:inline">Admin Panel</span>
                         <span className="sm:hidden">Admin</span>
@@ -284,7 +314,7 @@ export default function GridPage() {
                                 resetProgress();
                             }
                         }}
-                        className="btn-secondary flex items-center gap-2 group border-red-500/30 text-red-400 hover:bg-red-950/30 hover:text-red-300 text-sm px-3 py-2"
+                        className="btn-secondary flex items-center gap-2 group border-[rgb(var(--color-primary))]/0 text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger))]/15 hover:text-[rgb(var(--danger))] text-sm px-3 py-2"
                     >
                         <Trash2 size={16} />
                         <span className="hidden sm:inline">Reset Progress</span>
@@ -296,7 +326,7 @@ export default function GridPage() {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             onClick={handleInstall}
-                            className="btn-primary flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/50 text-sm px-3 py-2"
+                            className="btn-primary flex items-center gap-2 text-sm px-3 py-2"
                         >
                             <Download size={16} />
                             Install
@@ -305,9 +335,9 @@ export default function GridPage() {
                 </div>
 
                 {/* About / guide content */}
-                <section className="mt-16 max-w-3xl mx-auto text-left bg-white/[0.03] border border-white/10 rounded-2xl p-6 md:p-8">
-                    <h2 className="text-xl font-bold text-white mb-3">What is Sajilo Quiz?</h2>
-                    <p className="text-gray-400 leading-relaxed mb-4">
+                <section className="mt-16 max-w-3xl mx-auto text-left glass-panel p-6 md:p-8">
+                    <h2 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-3">What is Sajilo Quiz?</h2>
+                    <p className="text-[rgb(var(--text-secondary))] leading-relaxed mb-4">
                         Sajilo Quiz is a free quiz presentation app for running live events: school and college
                         competitions, office game nights, and classroom reviews. You build your questions and rounds
                         in the admin panel, project the question grid on a big screen, and reveal questions one by
@@ -316,48 +346,51 @@ export default function GridPage() {
                         once loaded.
                     </p>
 
-                    <h2 className="text-xl font-bold text-white mb-3 mt-8">How to run a quiz with it</h2>
-                    <ul className="text-gray-400 leading-relaxed mb-4 list-disc pl-5 space-y-2">
-                        <li>Open the <strong className="text-gray-200">Admin Panel</strong> and add your questions, rounds, and any images or audio.</li>
+                    <h2 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-3 mt-8">How to run a quiz with it</h2>
+                    <ul className="text-[rgb(var(--text-secondary))] leading-relaxed mb-4 list-disc pl-5 space-y-2">
+                        <li>Open the <strong className="text-[rgb(var(--text-primary))]">Admin Panel</strong> and add your questions, rounds, and any images or audio.</li>
                         <li>Project this grid page on the venue screen. Press F for fullscreen.</li>
                         <li>Click a numbered card to reveal its question. Answered cards are marked so you never repeat one.</li>
                         <li>Keep scores in the team scoreboard sidebar as the rounds progress.</li>
                         <li>Press ? anytime to see all keyboard shortcuts, and use Reset Progress to start a fresh session.</li>
                     </ul>
 
-                    <h2 className="text-xl font-bold text-white mb-3 mt-8">Frequently asked questions</h2>
-                    <div className="space-y-4 text-gray-400 leading-relaxed">
+                    <h2 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-3 mt-8">Frequently asked questions</h2>
+                    <div className="space-y-4 text-[rgb(var(--text-secondary))] leading-relaxed">
                         <div>
-                            <h3 className="font-semibold text-gray-200">Does it need internet during the event?</h3>
+                            <h3 className="font-semibold text-[rgb(var(--text-primary))]">Does it need internet during the event?</h3>
                             <p>No. Install it (or just load it once) and everything, including your media, runs offline. That is the whole point of the app.</p>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-gray-200">Where is my quiz data stored?</h3>
+                            <h3 className="font-semibold text-[rgb(var(--text-primary))]">Where is my quiz data stored?</h3>
                             <p>On your own device, in your browser's local storage. Nothing you create is uploaded to any server.</p>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-gray-200">Can I use images and sound?</h3>
+                            <h3 className="font-semibold text-[rgb(var(--text-primary))]">Can I use images and sound?</h3>
                             <p>Yes. Questions support multimedia, and the app has built-in sound effects for reveals and results.</p>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-gray-200">Is it really free?</h3>
+                            <h3 className="font-semibold text-[rgb(var(--text-primary))]">Is it really free?</h3>
                             <p>Yes. It began as a tool for events I helped run, and it is shared so anyone can use it.</p>
                         </div>
                     </div>
                 </section>
 
                 {/* Footer */}
-                <footer className="mt-10 pb-6 text-center text-sm text-gray-500">
+                <footer className="mt-10 pb-6 text-center text-sm text-[rgb(var(--text-secondary))]">
                     <p className="mb-2">
-                        <a href="/privacy.html" className="text-gray-400 hover:text-white underline-offset-4 hover:underline mx-2">Privacy Policy</a>
-                        <a href="/contact.html" className="text-gray-400 hover:text-white underline-offset-4 hover:underline mx-2">Contact</a>
-                        <a href="https://github.com/arundada9000/sajiloquiz" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white underline-offset-4 hover:underline mx-2">Source Code</a>
+                        <Link to="/privacy" className="text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] underline-offset-4 hover:underline mx-2">Privacy Policy</Link>
+                        <Link to="/terms" className="text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] underline-offset-4 hover:underline mx-2">Terms</Link>
+                        <a href="https://github.com/arundada9000/sajiloquiz" target="_blank" rel="noopener noreferrer" className="text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] underline-offset-4 hover:underline mx-2">Source Code</a>
                     </p>
                     <p>
                         &copy; {new Date().getFullYear()}{' '}
-                        <a href="https://arunneupane.netlify.app/" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300">Arun Neupane</a>
+                        <a href="https://arunneupane.netlify.app/" target="_blank" rel="noopener noreferrer" className="text-[rgb(var(--color-primary))] hover:text-[rgb(var(--color-secondary))]">Arun Neupane</a>
                         {' '}| Reach me anytime:{' '}
-                        <a href="mailto:arunneupane0000@gmail.com" className="text-emerald-400 hover:text-emerald-300">arunneupane0000@gmail.com</a>
+                        <a href="mailto:arunneupane0000@gmail.com" className="text-[rgb(var(--color-primary))] hover:text-[rgb(var(--color-secondary))]">arunneupane0000@gmail.com</a>
+                    </p>
+                    <p className="mt-2 text-xs">
+                        {site.companyName} &middot; {site.tagline}
                     </p>
                 </footer>
             </div>
@@ -365,7 +398,6 @@ export default function GridPage() {
             <ShortcutsModal
                 isOpen={showShortcuts}
                 onClose={() => setShowShortcuts(false)}
-                currentPage="grid"
             />
             {contextMenu && (
                 <ContextMenu

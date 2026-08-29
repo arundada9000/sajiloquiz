@@ -45,6 +45,10 @@ export default function QuestionPage() {
   const { markAsVisited, visitedIds } = useQuiz();
 
   // Dynamic Font Scaling
+  const MIN_SCALE = 0.5;
+  const MAX_SCALE = 3;
+  const SCALE_STEP = 0.1;
+  const TIMER_ADJUST_STEP = 10;
   const [scale, setScale] = useState(1);
 
   // Fullscreen State
@@ -105,16 +109,18 @@ export default function QuestionPage() {
 
   // Timer Logic
   useEffect(() => {
-    let interval: any = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((timeLeft) => timeLeft - 1);
       }, 1000);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && isActive) {
       setIsActive(false);
       sounds.timerEnd();
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isActive, timeLeft]);
 
   // Effect to sync visited state
@@ -150,14 +156,69 @@ export default function QuestionPage() {
     }
   }, [config.timer.passDuration, config.timer.autoStartOnPass]);
 
+  // Previous / next question navigation (used by swipe + context menu).
+  const goAdjacent = useCallback(
+    (dir: 1 | -1) => {
+      const sorted = [...questions].sort((a, b) => a.id - b.id);
+      const idx = sorted.findIndex((q) => q.id === questionId);
+      if (idx === -1) return;
+      const target = sorted[idx + dir];
+      if (!target) return;
+      sounds.select();
+      navigate(`/question/${target.id}`);
+    },
+    [questions, questionId, navigate],
+  );
+
+  // Touch swipe gestures on the question area.
+  useEffect(() => {
+    const main = document.getElementById("question-swipe-area");
+    if (!main) return;
+    let startX = 0;
+    let startY = 0;
+    let startT = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      startT = Date.now();
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      const t = e.changedTouches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      const dt = Date.now() - startT;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      // Tap: short, low movement (double-tap handled by click event via onDoubleClick).
+      if (absX < 10 && absY < 10 && dt < 400) return;
+
+      // Swipe threshold: ignore tiny or mostly-vertical drags.
+      if (absX < 50 || absX < absY) return;
+
+      if (dx < 0) goAdjacent(1); // swipe left -> next
+      else goAdjacent(-1); // swipe right -> previous
+    };
+
+    main.addEventListener("touchstart", onTouchStart, { passive: true });
+    main.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      main.removeEventListener("touchstart", onTouchStart);
+      main.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [goAdjacent]);
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Font Scaling
       if (e.key === "]" || e.key === "=" || e.key === "+")
-        setScale((s) => Math.min(s + 0.1, 3));
+        setScale((s) => Math.min(s + SCALE_STEP, MAX_SCALE));
       if (e.key === "[" || e.key === "-")
-        setScale((s) => Math.max(s - 0.1, 0.5));
+        setScale((s) => Math.max(s - SCALE_STEP, MIN_SCALE));
       if (e.key === "0") setScale(1);
 
       if (e.code === "Space") {
@@ -228,17 +289,36 @@ export default function QuestionPage() {
     return () => document.removeEventListener("contextmenu", handleContextMenu);
   }, []);
 
-  if (!question) return null;
+  if (!question) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center text-[rgb(var(--text-primary))]">
+        <div className="glass-panel p-8 md:p-12 max-w-md w-full">
+          <div className="text-5xl font-black mb-4 title-gradient">404</div>
+          <h1 className="text-xl font-bold mb-2">Question not found</h1>
+          <p className="text-[rgb(var(--text-secondary))] text-sm mb-6">
+            The question you are looking for does not exist or has been removed.
+          </p>
+          <button
+            onClick={handleBack}
+            className="btn-primary w-full flex items-center justify-center gap-2"
+          >
+            <ArrowLeft size={18} /> Back to Grid
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden text-[rgb(var(--text-primary))]">
-      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] -z-10 pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[rgba(var(--color-primary),0.2)] rounded-full blur-[100px] -z-10 pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-[rgba(var(--success),0.1)] rounded-full blur-[100px] -z-10 pointer-events-none" />
 
       <button
         onClick={toggleFullscreen}
-        className="fixed top-4 right-4 z-50 p-3 rounded-xl bg-[var(--card-bg)] backdrop-blur-md border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-white/10 transition-all group shadow-xl"
+        className="fixed top-4 right-4 z-50 p-3 rounded-full bg-[var(--card-bg)] backdrop-blur-md border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[var(--fill)] transition-all group shadow-xl"
         title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}
+        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
       >
         {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
         <span className="absolute -bottom-8 right-0 text-xs bg-black/80 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
@@ -253,13 +333,22 @@ export default function QuestionPage() {
         transition={{ duration: 0.4 }}
       >
         {/* Main Question Content */}
-        <div className="flex-1">
+        <div
+          id="question-swipe-area"
+          className="flex-1 touch-pan-y"
+          onDoubleClick={(e) => {
+            const target = e.target as HTMLElement;
+            if (target.closest("button, a, input, textarea, kbd")) return;
+            handleToggleAnswer();
+          }}
+        >
           <div className="mb-8">
             {/* Header Toolbar */}
             <div className="flex items-center gap-3 mb-6">
               <button
                 onClick={handleBack}
                 className="flex items-center gap-2 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors group font-medium"
+                aria-label="Back to grid"
               >
                 <ArrowLeft
                   size={20}
@@ -274,8 +363,9 @@ export default function QuestionPage() {
               {/* Quick Peek Button */}
               <button
                 onClick={() => setShowQuickPeek(true)}
-                className="ml-auto flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-white/10 transition-all group"
+                className="ml-auto flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[var(--fill)] transition-all group"
                 title="Quick Peek All Questions (Q)"
+                aria-label="Open questions overview"
               >
                 <LayoutGrid size={16} />
                 <span className="hidden md:inline text-sm">Overview</span>
@@ -286,12 +376,12 @@ export default function QuestionPage() {
             </div>
 
             {roundTitle && (
-              <div className="text-purple-400 text-sm font-bold uppercase tracking-widest mb-2 border-l-2 border-purple-500 pl-3">
+              <div className="text-[rgb(var(--color-primary))] text-sm font-bold uppercase tracking-widest mb-2 border-l-2 border-[rgb(var(--color-primary))] pl-3">
                 {roundTitle}
               </div>
             )}
 
-            <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-sm mb-6 text-purple-300 border border-white/10 uppercase tracking-wider">
+            <span className="inline-block px-3 py-1 rounded-full bg-[var(--fill)] text-sm mb-6 text-[rgb(var(--color-primary))] border border-[var(--card-border)] uppercase tracking-wider">
               Question {question.id}
             </span>
           </div>
@@ -300,9 +390,10 @@ export default function QuestionPage() {
             {/* Zoom Controls Overlay */}
             <div className="absolute top-[-3rem] right-0 flex gap-1 bg-black/30 backdrop-blur-sm p-1 rounded-lg opacity-0 group-hover/scale:opacity-100 transition-opacity z-10 text-white">
               <button
-                onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))}
-                className="p-1 hover:bg-white/10 rounded"
+                onClick={() => setScale((s) => Math.max(s - SCALE_STEP, MIN_SCALE))}
+                className="p-1 hover:bg-[var(--fill)] rounded"
                 title="Smaller [-]"
+                aria-label="Decrease text size"
               >
                 <Minus size={14} />
               </button>
@@ -310,16 +401,18 @@ export default function QuestionPage() {
                 {Math.round(scale * 100)}%
               </span>
               <button
-                onClick={() => setScale((s) => Math.min(s + 0.1, 3))}
-                className="p-1 hover:bg-white/10 rounded"
+                onClick={() => setScale((s) => Math.min(s + SCALE_STEP, MAX_SCALE))}
+                className="p-1 hover:bg-[var(--fill)] rounded"
                 title="Larger [+]"
+                aria-label="Increase text size"
               >
                 <Plus size={14} />
               </button>
               <button
                 onClick={() => setScale(1)}
-                className="p-1 hover:bg-white/10 rounded"
+                className="p-1 hover:bg-[var(--fill)] rounded"
                 title="Reset [0]"
+                aria-label="Reset text size"
               >
                 <RotateCcw size={14} />
               </button>
@@ -336,14 +429,14 @@ export default function QuestionPage() {
             >
               {/* Media Display */}
               {question.mediaType === "image" && question.mediaUrl && (
-                <div className="mb-6 rounded-xl overflow-hidden border-2 border-white/10 shadow-2xl relative group/img">
+                <div className="mb-6 rounded-xl overflow-hidden border-2 border-[var(--card-border)] shadow-2xl relative group/img">
                   <img
                     src={question.mediaUrl}
-                    alt="Question Attachment"
-                    className="max-h-[400px] w-auto object-contain bg-black/50"
+                    alt="Question attachment image"
+                    className="max-h-[400px] w-auto object-contain bg-[var(--fill)]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity flex items-end p-4">
-                    <span className="text-sm font-mono text-gray-300">
+                    <span className="text-sm font-mono text-[rgb(var(--text-secondary))]">
                       Image Reference
                     </span>
                   </div>
@@ -351,8 +444,8 @@ export default function QuestionPage() {
               )}
 
               {question.mediaType === "audio" && question.mediaUrl && (
-                <div className="mb-6 p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center gap-4">
-                  <div className="p-3 bg-purple-500 rounded-full animate-pulse">
+                <div className="mb-6 p-4 rounded-xl bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/30 flex items-center gap-4">
+                  <div className="p-3 bg-[rgb(var(--color-primary))] rounded-full animate-pulse">
                     <div className="w-6 h-6 border-b-2 border-white rounded-full animate-spin" />
                     {/* Simple visualization icon placeholder */}
                   </div>
@@ -380,8 +473,8 @@ export default function QuestionPage() {
                     exit={{ opacity: 0, height: 0 }}
                     className="w-full"
                   >
-                    <div className="p-8 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 w-full">
-                      <p className="text-sm text-emerald-500 uppercase tracking-widest mb-2 font-bold">
+                    <div className="p-8 rounded-2xl bg-[rgb(var(--success))]/10 border border-[rgb(var(--success))]/25 w-full">
+                      <p className="text-sm text-[rgb(var(--success))] uppercase tracking-widest mb-2 font-bold">
                         Answer
                       </p>
                       <p
@@ -398,8 +491,13 @@ export default function QuestionPage() {
 
             <button
               onClick={handleToggleAnswer}
-              className={`btn-primary flex items-center gap-2 text-lg px-8 py-4 ${showAnswer ? "bg-gray-700 hover:bg-gray-600 !shadow-none !background-none" : ""}`}
-              style={showAnswer ? { background: "rgba(255,255,255,0.1)" } : {}}
+              className={`btn-primary flex items-center gap-2 text-lg px-8 py-4 ${showAnswer ? "" : ""}`}
+              style={
+                showAnswer
+                  ? { background: "rgba(255,255,255,0.1)", boxShadow: "none" }
+                  : undefined
+              }
+              aria-pressed={showAnswer}
             >
               {showAnswer ? (
                 <>
@@ -422,14 +520,14 @@ export default function QuestionPage() {
         {/* Timer Panel */}
         <div className="w-full md:w-72 flex flex-col gap-4">
           <div
-            className={`p-6 rounded-2xl border flex flex-col items-center justify-center transition-colors duration-500 shadow-xl ${timeLeft === 0 ? "bg-red-500/20 border-red-500/50 anim-pulse" : "bg-[var(--card-bg)] border-[var(--card-border)]"}`}
+            className={`p-6 rounded-2xl border flex flex-col items-center justify-center transition-colors duration-500 shadow-xl ${timeLeft === 0 ? "bg-[rgb(var(--danger))]/15 border-[rgb(var(--danger))]/50 anim-pulse" : "bg-[var(--card-bg)] border-[var(--card-border)]"}`}
           >
             {/* Timer Header & Time */}
             <div className="flex items-center gap-2 mb-2 text-[rgb(var(--text-secondary))]">
               <Timer size={16} /> <span>Timer</span>
             </div>
             <div
-              className={`font-mono font-bold mb-4 ${timeLeft <= 10 ? "text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]" : "text-[rgb(var(--text-primary))]"}`}
+              className={`font-mono font-bold mb-4 ${timeLeft <= 10 ? "text-[rgb(var(--danger))] shadow-[0_0_20px_rgba(var(--danger),0.2)]" : "text-[rgb(var(--text-primary))]"}`}
               style={{ fontSize: config.fonts.timerTime }}
             >
               {timeLeft}s
@@ -439,8 +537,9 @@ export default function QuestionPage() {
           {/* Adjuster */}
           <div className="flex items-center gap-2 w-full mb-6 justify-center">
             <button
-              onClick={() => setTimeLeft((t) => Math.max(0, t - 10))}
-              className="p-2 hover:bg-white/10 rounded"
+              onClick={() => setTimeLeft((t) => Math.max(0, t - TIMER_ADJUST_STEP))}
+              className="p-2 hover:bg-[var(--fill)] rounded"
+              aria-label="Decrease timer by 10 seconds"
             >
               <Minus size={16} />
             </button>
@@ -451,8 +550,9 @@ export default function QuestionPage() {
               Reset
             </button>
             <button
-              onClick={() => setTimeLeft((t) => t + 10)}
-              className="p-2 hover:bg-white/10 rounded"
+              onClick={() => setTimeLeft((t) => t + TIMER_ADJUST_STEP)}
+              className="p-2 hover:bg-[var(--fill)] rounded"
+              aria-label="Increase timer by 10 seconds"
             >
               <Plus size={16} />
             </button>
@@ -465,7 +565,7 @@ export default function QuestionPage() {
                 sounds.click();
                 setIsActive(!isActive);
               }}
-              className={`flex-1 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all ${isActive ? "bg-amber-600/80 hover:bg-amber-600 text-white shadow-lg shadow-amber-900/40" : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40 hover:-translate-y-1"}`}
+              className={`flex-1 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all ${isActive ? "bg-[rgb(var(--warning))]/80 hover:bg-[rgb(var(--warning))] text-white shadow-lg shadow-[rgb(var(--warning))]/40" : "bg-[rgb(var(--success))] hover:bg-[rgb(var(--success))] text-white shadow-lg shadow-[rgb(var(--success))]/40 hover:-translate-y-1"}`}
             >
               {isActive ? (
                 <>
@@ -483,7 +583,7 @@ export default function QuestionPage() {
                 setIsActive(false);
                 setTimeLeft(config.timer.defaultDuration);
               }}
-              className="p-3 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 border border-white/5"
+              className="p-3 bg-[var(--fill)] hover:bg-[var(--fill)] rounded-lg text-[rgb(var(--text-secondary))] border border-[var(--card-border)]"
             >
               <RotateCcw size={18} />
             </button>
@@ -492,12 +592,12 @@ export default function QuestionPage() {
           {/* Pass Button */}
           <button
             onClick={handlePass}
-            className="w-full py-2 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-300 rounded-lg flex items-center justify-center gap-2 transition-colors"
+            className="w-full py-2 bg-[rgb(var(--color-primary))]/20 hover:bg-[rgb(var(--color-primary))]/30 border border-[rgb(var(--color-primary))]/30 text-[rgb(var(--color-primary))] rounded-lg flex items-center justify-center gap-2 transition-colors"
           >
             <ArrowRight size={16} /> Pass (+{config.timer.passDuration}s)
           </button>
 
-          <div className="text-[10px] text-gray-600 text-center font-mono mt-4">
+          <div className="text-[10px] text-[rgb(var(--text-secondary))] text-center font-mono mt-4">
             [T] Timer • [R] Reset • [-/+] Zoom • [0] Reset Zoom • [F] Fullscreen
             • [Q] Overview
           </div>
@@ -540,8 +640,9 @@ export default function QuestionPage() {
                 </div>
                 <button
                   onClick={() => setShowQuickPeek(false)}
-                  className="p-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-purple-500/10 transition-all"
+                  className="p-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--color-primary))]/10 transition-all"
                   title="Close (Esc)"
+                  aria-label="Close overview"
                 >
                   <X size={20} />
                 </button>
@@ -568,17 +669,17 @@ export default function QuestionPage() {
                                                 aspect-square flex items-center justify-center rounded-xl font-bold text-lg
                                                 transition-all duration-200 border relative overflow-hidden
                                                 ${isCurrent
-                          ? "bg-purple-600 border-purple-400 text-white ring-2 ring-purple-400 ring-offset-2 ring-offset-[rgb(var(--bg-elevated))]"
+                          ? "bg-[rgb(var(--color-primary))] border-[rgb(var(--color-primary))] text-[rgb(var(--label-inverse))] ring-2 ring-[rgb(var(--color-primary))] ring-offset-2 ring-offset-[rgb(var(--bg-elevated))]"
                           : isVisited
-                            ? "bg-red-900/20 border-red-800/20 text-red-500/50 cursor-not-allowed"
-                            : "bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-primary))] hover:bg-purple-500/10 hover:border-purple-500/50 hover:scale-105"
+                            ? "bg-[rgb(var(--danger))]/15 border-[rgb(var(--danger))]/15 text-[rgb(var(--danger))]/50 cursor-not-allowed"
+                            : "bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--color-primary))]/10 hover:border-[rgb(var(--color-primary))]/50 hover:scale-105"
                         }
                                             `}
                     >
                       {isVisited && !isCurrent && (
                         <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
-                          <div className="w-full h-[2px] bg-red-500/50 rotate-45 absolute" />
-                          <div className="w-full h-[2px] bg-red-500/50 -rotate-45 absolute" />
+                          <div className="w-full h-[2px] bg-[rgb(var(--danger))]/50 rotate-45 absolute" />
+                          <div className="w-full h-[2px] bg-[rgb(var(--danger))]/50 -rotate-45 absolute" />
                         </div>
                       )}
                       <span className="relative z-10">{q.id}</span>
@@ -608,7 +709,6 @@ export default function QuestionPage() {
       <ShortcutsModal
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
-        currentPage="question"
       />
       {contextMenu && (
         <ContextMenu
@@ -645,18 +745,18 @@ function QuickScorePanel() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mt-6 w-full p-5 rounded-2xl bg-purple-500/5 border border-purple-500/10 flex flex-col md:flex-row items-center gap-6"
+      className="mt-6 w-full p-5 rounded-2xl bg-[rgb(var(--color-primary))]/5 border border-[rgb(var(--color-primary))]/10 flex flex-col md:flex-row items-center gap-6"
     >
       <div className="relative flex-1 min-w-0 w-full">
-        <p className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-1.5 ml-1">
+        <p className="text-[10px] uppercase tracking-widest text-[rgb(var(--color-primary))] font-bold mb-1.5 ml-1">
           Assign Points To
         </p>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-purple-500/50 transition-all text-left shadow-lg group"
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-[rgb(var(--color-primary))]/50 transition-all text-left shadow-lg group"
         >
           <div className="flex items-center gap-3 truncate">
-            <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400">
+            <div className="p-1.5 rounded-lg bg-[rgb(var(--color-primary))]/20 text-[rgb(var(--color-primary))]">
               <Users size={18} />
             </div>
             <span className="font-bold text-[rgb(var(--text-primary))] truncate">
@@ -665,7 +765,7 @@ function QuickScorePanel() {
           </div>
           <ChevronDown
             size={18}
-            className={`text-purple-400 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : "rotate-0"}`}
+            className={`text-[rgb(var(--color-primary))] transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : "rotate-0"}`}
           />
         </button>
 
@@ -683,10 +783,10 @@ function QuickScorePanel() {
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="absolute left-0 right-0 bottom-full mb-3 bg-white dark:bg-slate-900 border border-purple-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[120] overflow-hidden"
+                className="absolute left-0 right-0 bottom-full mb-3 bg-white dark:bg-slate-900 border border-[rgb(var(--color-primary))]/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[120] overflow-hidden"
               >
                 <div className="max-h-[250px] overflow-y-auto custom-scrollbar p-1.5">
-                  <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-purple-500 font-black opacity-80 border-bottom border-purple-500/10 mb-1">
+                  <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-[rgb(var(--color-primary))] font-black opacity-80 border-b border-[rgb(var(--color-primary))]/10 mb-1">
                     Select Active Team
                   </div>
                   {teams.map((t) => (
@@ -698,8 +798,8 @@ function QuickScorePanel() {
                         sounds.click();
                       }}
                       className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all ${activeTeamId === t.id
-                        ? "bg-purple-600 text-white shadow-lg shadow-purple-500/20"
-                        : "hover:bg-purple-500/10 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]"
+                        ? "bg-[rgb(var(--color-primary))] text-[rgb(var(--label-inverse))] shadow-lg shadow-[rgb(var(--color-primary))]/20"
+                        : "hover:bg-[rgb(var(--color-primary))]/10 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]"
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -709,7 +809,7 @@ function QuickScorePanel() {
                         <span className="font-bold truncate">{t.name}</span>
                       </div>
                       <span
-                        className={`text-xs font-mono ${activeTeamId === t.id ? "text-white/80" : "opacity-60"}`}
+                        className={`text-xs font-mono ${activeTeamId === t.id ? "text-[rgb(var(--label-inverse))]/80" : "opacity-60"}`}
                       >
                         {t.score} pts
                       </span>
@@ -730,7 +830,7 @@ function QuickScorePanel() {
               : scoring.correct.toString()
           }
           sub="Correct"
-          color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white"
+          color="bg-[rgb(var(--success))]/10 text-[rgb(var(--success))] border border-[rgb(var(--success))]/25 hover:bg-[rgb(var(--success))] hover:text-white"
           disabled={!activeTeamId}
           onClick={() => {
             updateScore(activeTeamId!, scoring.correct);
@@ -742,7 +842,7 @@ function QuickScorePanel() {
             scoring.bonus > 0 ? `+${scoring.bonus}` : scoring.bonus.toString()
           }
           sub="Bonus"
-          color="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500 hover:text-white"
+          color="bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))] border border-[rgb(var(--color-primary))]/25 hover:bg-[rgb(var(--color-primary))] hover:text-[rgb(var(--label-inverse))]"
           disabled={!activeTeamId}
           onClick={() => {
             updateScore(activeTeamId!, scoring.bonus);
@@ -756,7 +856,7 @@ function QuickScorePanel() {
               : scoring.penalty.toString()
           }
           sub="Wrong"
-          color="bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white"
+          color="bg-[rgb(var(--danger))]/15 text-[rgb(var(--danger))] border border-[rgb(var(--danger))]/25 hover:bg-[rgb(var(--danger))] hover:text-white"
           disabled={!activeTeamId}
           onClick={() => {
             updateScore(activeTeamId!, scoring.penalty);
