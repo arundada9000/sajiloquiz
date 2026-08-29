@@ -6,7 +6,7 @@ import {
     Instagram, Facebook, Github, Youtube
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useData } from '../context/DataContext';
+import { useData, downloadJson } from '../context/DataContext';
 import { sounds } from '../utils/sounds';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -87,11 +87,14 @@ export default function ContextMenu({
 
     const colorSchemes: MenuItem[] = [
         { label: 'Purple', icon: <div className="w-3 h-3 rounded-full bg-purple-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'purple' } }), active: appConfig.theme.colorScheme === 'purple' },
-        { label: 'Blue', icon: <div className="w-3 h-3 rounded-full bg-blue-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'blue' } }), active: appConfig.theme.colorScheme === 'blue' },
-        { label: 'Green', icon: <div className="w-3 h-3 rounded-full bg-green-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'green' } }), active: appConfig.theme.colorScheme === 'green' },
-        { label: 'Red', icon: <div className="w-3 h-3 rounded-full bg-red-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'red' } }), active: appConfig.theme.colorScheme === 'red' },
-        { label: 'Orange', icon: <div className="w-3 h-3 rounded-full bg-orange-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'orange' } }), active: appConfig.theme.colorScheme === 'orange' },
-        { label: 'Pink', icon: <div className="w-3 h-3 rounded-full bg-pink-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'pink' } }), active: appConfig.theme.colorScheme === 'pink' },
+        { label: 'Indigo', icon: <div className="w-3 h-3 rounded-full bg-indigo-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'indigo' } }), active: appConfig.theme.colorScheme === 'indigo' },
+        { label: 'Ocean', icon: <div className="w-3 h-3 rounded-full bg-sky-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'blue' } }), active: appConfig.theme.colorScheme === 'blue' },
+        { label: 'Teal', icon: <div className="w-3 h-3 rounded-full bg-teal-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'teal' } }), active: appConfig.theme.colorScheme === 'teal' },
+        { label: 'Paper', icon: <div className="w-3 h-3 rounded-full bg-green-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'green' } }), active: appConfig.theme.colorScheme === 'green' },
+        { label: 'Sunset', icon: <div className="w-3 h-3 rounded-full bg-orange-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'orange' } }), active: appConfig.theme.colorScheme === 'orange' },
+        { label: 'Crimson', icon: <div className="w-3 h-3 rounded-full bg-red-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'red' } }), active: appConfig.theme.colorScheme === 'red' },
+        { label: 'Blush', icon: <div className="w-3 h-3 rounded-full bg-pink-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'pink' } }), active: appConfig.theme.colorScheme === 'pink' },
+        { label: 'Slate', icon: <div className="w-3 h-3 rounded-full bg-slate-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'graphite' } }), active: appConfig.theme.colorScheme === 'graphite' },
     ];
 
     const menuItems: MenuItem[] = [
@@ -119,6 +122,7 @@ export default function ContextMenu({
                     label: 'Random Question',
                     icon: <Shuffle size={14} />,
                     action: () => {
+                        if (allQuestions.length === 0) return;
                         const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
                         navigate(`/question/${randomQ.id}`);
                     }
@@ -179,11 +183,10 @@ export default function ContextMenu({
                     label: 'Backup Data',
                     icon: <Download size={14} />,
                     action: () => {
-                        const dataStr = JSON.stringify({ config: appConfig, questions: allQuestions }, null, 2);
-                        const a = document.createElement('a');
-                        a.href = URL.createObjectURL(new Blob([dataStr], { type: 'application/json' }));
-                        a.download = `quiz-backup-${Date.now()}.json`;
-                        a.click();
+                        downloadJson(
+                          { config: appConfig, questions: allQuestions },
+                          `quiz-backup-${new Date().toISOString().split('T')[0]}.json`,
+                        );
                     }
                 },
                 { label: 'Refresh App', icon: <RefreshCw size={14} />, action: () => window.location.reload() }

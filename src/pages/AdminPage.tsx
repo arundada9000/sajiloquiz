@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   RotateCcw,
@@ -35,6 +35,7 @@ import {
 import { useData, Question, AppConfig, Round } from "../context/DataContext";
 import { sounds } from "../utils/sounds";
 import License from "../components/License";
+import { ColorSchemeId } from "../utils/theme";
 
 export default function AdminPage() {
   const {
@@ -49,6 +50,7 @@ export default function AdminPage() {
     exportData,
   } = useData();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<
     | "general"
     | "appearance"
@@ -59,7 +61,15 @@ export default function AdminPage() {
     | "teams"
     | "help"
     | "about"
-  >("questions");
+  >(() => {
+    const tab = searchParams.get("tab");
+    const validTabs: Array<"general" | "appearance" | "questions" | "theme" | "sounds" | "data" | "teams" | "help" | "about"> = [
+      "general", "appearance", "questions", "theme", "sounds", "data", "teams", "help", "about",
+    ];
+    return validTabs.includes(tab as typeof validTabs[number])
+      ? (tab as typeof validTabs[number])
+      : "questions";
+  });
 
   // --- Local State for Forms ---
   // We bind forms directly to config updates or keep local buffer if validaton needed
@@ -81,7 +91,7 @@ export default function AdminPage() {
           <div className="flex gap-2">
             <button
               onClick={() => navigate("/")}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold"
+              className="px-4 py-2 bg-[rgb(var(--color-primary))] hover:bg-[rgb(var(--color-secondary))] text-[rgb(var(--label-inverse))] rounded-lg font-bold"
             >
               Launch Quiz
             </button>
@@ -199,21 +209,32 @@ export default function AdminPage() {
 
 // --- Sub-Components ---
 
+type TabId =
+  | "general"
+  | "appearance"
+  | "questions"
+  | "theme"
+  | "sounds"
+  | "data"
+  | "teams"
+  | "help"
+  | "about";
+
 function TabButton({
   id,
   label,
   active,
   onClick,
 }: {
-  id: any;
+  id: TabId;
   label: string;
-  active: string;
-  onClick: (id: any) => void;
+  active: TabId;
+  onClick: (id: TabId) => void;
 }) {
   return (
     <button
       onClick={() => onClick(id)}
-      className={`text-left px-4 py-3 rounded-lg transition-colors ${active === id ? "bg-[var(--card-bg)] text-[rgb(var(--text-primary))] font-bold shadow-lg" : "text-[rgb(var(--text-secondary))] hover:bg-white/5 hover:text-[rgb(var(--text-primary))]"}`}
+      className={`text-left px-4 py-3 rounded-xl transition-colors ${active === id ? "bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))] font-bold" : "text-[rgb(var(--text-secondary))] hover:bg-[var(--fill)] hover:text-[rgb(var(--text-primary))]"}`}
     >
       {label}
     </button>
@@ -227,13 +248,20 @@ function GeneralSettings({
   tabConfig: AppConfig;
   onUpdate: (c: Partial<AppConfig>) => void;
 }) {
-  const handleRoundUpdate = (idx: number, field: keyof Round, value: any) => {
+  const handleRoundUpdate = (
+    idx: number,
+    field: keyof Round,
+    value: string | [number, number],
+  ) => {
     const newRounds = [...tabConfig.rounds];
     if (field === "range") {
-      // value should be [start, end]
-      newRounds[idx] = { ...newRounds[idx], range: value };
+      newRounds[idx] = {
+        ...newRounds[idx],
+        range: value as [number, number],
+      };
     } else {
-      newRounds[idx] = { ...newRounds[idx], [field]: value };
+      const next = value as string;
+      newRounds[idx] = { ...newRounds[idx], [field]: next };
     }
     onUpdate({ rounds: newRounds });
   };
@@ -356,7 +384,7 @@ function GeneralSettings({
         {tabConfig.enableRounds && (
           <button
             onClick={addRound}
-            className="text-xs px-2 py-1 bg-emerald-600/30 text-emerald-400 rounded hover:bg-emerald-600/50 flex items-center gap-1"
+            className="text-xs px-2 py-1 bg-[rgb(var(--success))]/15 text-[rgb(var(--success))] rounded hover:bg-[rgb(var(--success))]/50 flex items-center gap-1"
           >
             <Plus size={14} /> Add Round
           </button>
@@ -371,12 +399,12 @@ function GeneralSettings({
               className="p-4 rounded bg-[var(--card-bg)] border border-[var(--card-border)] flex flex-col gap-4 relative group shadow-sm"
             >
               <div className="flex justify-between items-start">
-                <h4 className="text-sm font-bold text-gray-400">
+                <h4 className="text-sm font-bold text-[rgb(var(--text-secondary))]">
                   Round {idx + 1}
                 </h4>
                 <button
                   onClick={() => deleteRound(idx)}
-                  className="p-1 text-red-400 hover:bg-red-500/20 rounded md:opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="p-1 text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger))]/15 rounded md:opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -490,9 +518,11 @@ function SoundSettings({
 
   const toggleAll = (enabled: boolean) => {
     const allSounds = { ...tabConfig.sounds };
-    Object.keys(allSounds).forEach((key) => {
-      (allSounds as any)[key] = enabled;
-    });
+    (Object.keys(allSounds) as Array<keyof typeof allSounds>).forEach(
+      (key) => {
+        allSounds[key] = enabled;
+      },
+    );
     onUpdate({ sounds: allSounds });
   };
 
@@ -526,27 +556,27 @@ function SoundSettings({
       <SectionTitle title="Sound Effects" />
 
       {/* Master Toggle */}
-      <div className="p-6 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30">
+      <div className="p-6 rounded-lg bg-gradient-to-br from-[rgb(var(--color-primary))]/15 to-[rgb(var(--color-secondary))]/15 border border-[rgb(var(--color-primary))]/30">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h4 className="text-lg font-bold text-white flex items-center gap-2">
+            <h4 className="text-lg font-bold text-[rgb(var(--text-primary))] flex items-center gap-2">
               <Volume2 size={20} />
               Master Volume
             </h4>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm text-[rgb(var(--text-secondary))] mt-1">
               Enable or disable all sound effects globally
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => toggleAll(true)}
-              className="px-4 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded-lg font-bold text-sm transition-colors"
+              className="px-4 py-2 bg-[rgb(var(--success))]/15 hover:bg-[rgb(var(--success))]/50 text-[rgb(var(--success))] rounded-lg font-bold text-sm transition-colors"
             >
               Enable All
             </button>
             <button
               onClick={() => toggleAll(false)}
-              className="px-4 py-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 rounded-lg font-bold text-sm transition-colors"
+              className="px-4 py-2 bg-[rgb(var(--danger))]/15 hover:bg-[rgb(var(--danger))]/50 text-[rgb(var(--danger))] rounded-lg font-bold text-sm transition-colors"
             >
               Disable All
             </button>
@@ -561,13 +591,13 @@ function SoundSettings({
 
       {/* Individual Sound Controls */}
       <div className="space-y-3">
-        <h4 className="text-sm uppercase tracking-wider text-gray-400 font-bold">
+        <h4 className="text-sm uppercase tracking-wider text-[rgb(var(--text-secondary))] font-bold">
           Individual Sound Controls
         </h4>
         {soundsList.map((sound) => (
           <div
             key={sound.key}
-            className="p-4 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-colors flex items-center justify-between group"
+            className="p-4 rounded-lg bg-[var(--fill)] border border-[var(--card-border)] hover:border-[var(--card-border)] transition-colors flex items-center justify-between group"
           >
             <div className="flex-1">
               <div className="flex items-center gap-3">
@@ -577,8 +607,8 @@ function SoundSettings({
                   onChange={(c) => updateSound(sound.key, c)}
                 />
                 <div>
-                  <p className="font-bold text-white">{sound.label}</p>
-                  <p className="text-xs text-gray-400">{sound.description}</p>
+                  <p className="font-bold text-[rgb(var(--text-primary))]">{sound.label}</p>
+                  <p className="text-xs text-[rgb(var(--text-secondary))]">{sound.description}</p>
                 </div>
               </div>
             </div>
@@ -590,7 +620,7 @@ function SoundSettings({
                   soundFunc();
                 }
               }}
-              className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 rounded-lg text-sm font-medium transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1"
+              className="px-3 py-1.5 bg-[rgb(var(--color-primary))]/20 hover:bg-[rgb(var(--color-primary))]/40 text-[rgb(var(--color-primary))] rounded-lg text-sm font-medium transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1"
               title="Preview Sound"
             >
               <Volume2 size={14} /> Preview
@@ -599,7 +629,7 @@ function SoundSettings({
         ))}
       </div>
 
-      <div className="p-4 rounded bg-blue-500/10 border border-blue-500/20 text-sm text-blue-200">
+      <div className="p-4 rounded bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/20 text-sm text-[rgb(var(--color-primary))]">
         <p>
           💡 <strong>Tip:</strong> Sounds are generated using Web Audio API. No
           external files needed! Preview any sound to hear it.
@@ -609,6 +639,50 @@ function SoundSettings({
   );
 }
 
+function hexToRgb(hex: string): string {
+  const value = hex.replace("#", "");
+  const full =
+    value.length === 3
+      ? value
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : value;
+  const int = parseInt(full, 16);
+  const r = (int >> 16) & 255;
+  const g = (int >> 8) & 255;
+  const b = int & 255;
+  return `${r}, ${g}, ${b}`;
+}
+
+function rgbToHex(rgb: string): string {
+  const parts = rgb
+    .split(",")
+    .map((p) => parseInt(p.trim(), 10))
+    .filter((n) => !Number.isNaN(n));
+  if (parts.length < 3) return "#a855f7";
+  const toHex = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+  return `#${toHex(parts[0])}${toHex(parts[1])}${toHex(parts[2])}`;
+}
+
+function parseRgb(input: string, fallback: string): string {
+  const parts = input
+    .replace(/rgb\(|\)/g, "")
+    .split(",")
+    .map((p) => p.trim());
+  const nums = parts
+    .filter((p) => p !== "")
+    .map((p) => parseInt(p, 10))
+    .filter((n) => !Number.isNaN(n));
+  if (nums.length >= 3) {
+    return `${Math.max(0, Math.min(255, nums[0]))}, ${Math.max(
+      0,
+      Math.min(255, nums[1]),
+    )}, ${Math.max(0, Math.min(255, nums[2]))}`;
+  }
+  return fallback;
+}
+
 function ThemeSettings({
   tabConfig,
   onUpdate,
@@ -616,14 +690,43 @@ function ThemeSettings({
   tabConfig: AppConfig;
   onUpdate: (c: Partial<AppConfig>) => void;
 }) {
-  const colorSchemes = [
-    { id: "purple", name: "Purple", primary: "#a855f7", secondary: "#9333ea" },
-    { id: "blue", name: "Blue", primary: "#3b82f6", secondary: "#2563eb" },
-    { id: "green", name: "Green", primary: "#22c55e", secondary: "#16a34a" },
-    { id: "red", name: "Red", primary: "#ef4444", secondary: "#dc2626" },
-    { id: "orange", name: "Orange", primary: "#f97316", secondary: "#ea580c" },
-    { id: "pink", name: "Pink", primary: "#ec4899", secondary: "#db2777" },
-  ] as const;
+  const colorSchemes: Array<{
+    id: ColorSchemeId;
+    name: string;
+    primary: string;
+    secondary: string;
+  }> = [
+    { id: "purple", name: "Purple", primary: "#8b5cf6", secondary: "#a855f7" },
+    { id: "indigo", name: "Indigo", primary: "#6366f1", secondary: "#8b8cf5" },
+    { id: "blue", name: "Ocean", primary: "#0ea5e9", secondary: "#38bdf8" },
+    { id: "teal", name: "Teal", primary: "#0d9488", secondary: "#2dd4bf" },
+    { id: "green", name: "Paper", primary: "#16a34a", secondary: "#4ade80" },
+    { id: "orange", name: "Sunset", primary: "#ea580c", secondary: "#fb923c" },
+    { id: "red", name: "Crimson", primary: "#dc2626", secondary: "#f87171" },
+    { id: "pink", name: "Blush", primary: "#db2777", secondary: "#f472b6" },
+    { id: "graphite", name: "Slate", primary: "#475569", secondary: "#94a3b8" },
+    { id: "custom", name: "Custom", primary: "#8b5cf6", secondary: "#a855f7" },
+  ];
+
+  // RGB helper for the custom palette preview.
+  const customTint = tabConfig.theme.customTint || {
+    primary: "168, 85, 247",
+    secondary: "147, 51, 234",
+    accent: "126, 34, 206",
+  };
+
+  const updateCustomColor = (
+    field: "primary" | "secondary" | "accent",
+    value: string,
+  ) => {
+    onUpdate({
+      theme: {
+        ...tabConfig.theme,
+        colorScheme: "custom",
+        customTint: { ...customTint, [field]: value },
+      },
+    });
+  };
 
   const modes = [
     {
@@ -652,7 +755,7 @@ function ThemeSettings({
 
       {/* Mode Selection */}
       <div>
-        <h4 className="text-lg font-bold text-white mb-4">Display Mode</h4>
+        <h4 className="text-lg font-bold text-[rgb(var(--text-primary))] mb-4">Display Mode</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {modes.map((mode) => (
             <button
@@ -660,14 +763,14 @@ function ThemeSettings({
               onClick={() =>
                 onUpdate({ theme: { ...tabConfig.theme, mode: mode.id } })
               }
-              className={`p-6 rounded-xl border-2 transition-all ${tabConfig.theme.mode === mode.id
-                ? "border-purple-500 bg-purple-500/20"
-                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-purple-500/30 hover:bg-white/10"
+              className={`p-6 rounded-2xl border-2 transition-all ${tabConfig.theme.mode === mode.id
+                ? "border-[rgb(var(--color-primary))] bg-[rgb(var(--color-primary))]/15"
+                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[rgb(var(--color-primary))]/40 hover:bg-[var(--fill)]"
                 }`}
             >
-              <mode.Icon className="w-12 h-12 mb-3 mx-auto" />
-              <div className="font-bold text-white mb-1">{mode.name}</div>
-              <div className="text-sm text-gray-400">{mode.description}</div>
+              <mode.Icon className="w-12 h-12 mb-3 mx-auto text-[rgb(var(--color-primary))]" />
+              <div className="font-bold text-[rgb(var(--text-primary))] mb-1">{mode.name}</div>
+              <div className="text-sm text-[rgb(var(--text-secondary))]">{mode.description}</div>
             </button>
           ))}
         </div>
@@ -675,7 +778,7 @@ function ThemeSettings({
 
       {/* Color Scheme Selection */}
       <div>
-        <h4 className="text-lg font-bold text-white mb-4">Color Scheme</h4>
+        <h4 className="text-lg font-bold text-[rgb(var(--text-primary))] mb-4">Color Scheme</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {colorSchemes.map((scheme) => (
             <button
@@ -685,15 +788,14 @@ function ThemeSettings({
                   theme: { ...tabConfig.theme, colorScheme: scheme.id },
                 })
               }
-              className={`p-6 rounded-xl border-2 transition-all relative overflow-hidden group ${tabConfig.theme.colorScheme === scheme.id
-                ? "border-purple-500 bg-[var(--card-bg)]"
-                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-white/20 hover:bg-white/10"
+              className={`p-6 rounded-2xl border-2 transition-all relative overflow-hidden ${tabConfig.theme.colorScheme === scheme.id
+                ? "border-[rgb(var(--color-primary))] bg-[var(--card-bg)]"
+                : "border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[rgb(var(--color-primary))]/50 hover:bg-[var(--fill)]"
                 }`}
             >
-              {/* Color preview */}
               <div className="flex gap-2 mb-3">
                 <div
-                  className="w-12 h-12 rounded-lg shadow-lg"
+                  className="w-12 h-12 rounded-xl shadow-lg"
                   style={{
                     background: `linear-gradient(135deg, ${scheme.primary}, ${scheme.secondary})`,
                   }}
@@ -709,23 +811,60 @@ function ThemeSettings({
                   />
                 </div>
               </div>
-              <div className="font-bold text-white text-left">
+              <div className="font-bold text-[rgb(var(--text-primary))] text-left">
                 {scheme.name}
               </div>
 
-              {/* Active indicator */}
               {tabConfig.theme.colorScheme === scheme.id && (
-                <div className="absolute top-2 right-2 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+                <div className="absolute top-2 right-2 w-3 h-3 bg-[rgb(var(--success))] rounded-full border-2 border-white" />
               )}
             </button>
           ))}
         </div>
       </div>
 
+      {/* Custom Palette Editor */}
+      {tabConfig.theme.colorScheme === "custom" && (
+        <div className="p-6 rounded-2xl bg-[var(--card-bg)] border border-[var(--card-border)]">
+          <h4 className="text-base font-bold text-[rgb(var(--text-primary))] mb-4">
+            Custom Palette
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(
+              [
+                ["primary", "Primary"],
+                ["secondary", "Secondary"],
+                ["accent", "Accent"],
+              ] as const
+            ).map(([field, label]) => (
+              <div key={field} className="flex flex-col gap-2">
+                <label className="text-xs uppercase tracking-wider text-[rgb(var(--text-secondary))] font-bold">
+                  {label}
+                </label>
+                <input
+                  type="color"
+                  value={rgbToHex(customTint[field])}
+                  onChange={(e) =>
+                    updateCustomColor(field, hexToRgb(e.target.value))
+                  }
+                  className="w-full h-12 rounded-xl border border-[var(--card-border)] bg-transparent cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={`rgb(${customTint[field]})`}
+                  onChange={(e) => updateCustomColor(field, parseRgb(e.target.value, customTint[field]))}
+                  className="bg-[var(--fill)] border border-[var(--card-border)] rounded-lg px-3 py-2 text-xs font-mono text-[rgb(var(--text-primary))] outline-none focus:border-[rgb(var(--color-primary))]"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Live Preview Note */}
-      <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 text-sm">
-        <p className="text-white flex items-center gap-2">
-          <Sparkles className="w-5 h-5" />
+      <div className="p-4 rounded-2xl bg-gradient-to-br from-[rgb(var(--color-primary))]/15 to-[rgb(var(--color-secondary))]/15 border border-[rgb(var(--color-primary))]/30 text-sm text-[rgb(var(--text-primary))]">
+        <p className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-[rgb(var(--color-primary))]" />
           <strong>Live Preview:</strong> Changes apply instantly! Look around
           the app to see your theme in action.
         </p>
@@ -737,13 +876,13 @@ function ThemeSettings({
           Current Theme
         </h5>
         <div className="flex flex-wrap gap-3 text-sm">
-          <div className="px-3 py-1 rounded-full bg-white/10 text-[rgb(var(--text-secondary))]">
+          <div className="px-3 py-1 rounded-full bg-[var(--fill)] text-[rgb(var(--text-secondary))]">
             Mode:{" "}
             <span className="font-bold text-[rgb(var(--text-primary))]">
               {tabConfig.theme.mode}
             </span>
           </div>
-          <div className="px-3 py-1 rounded-full bg-white/10 text-[rgb(var(--text-secondary))]">
+          <div className="px-3 py-1 rounded-full bg-[var(--fill)] text-[rgb(var(--text-secondary))]">
             Scheme:{" "}
             <span className="font-bold text-[rgb(var(--text-primary))] capitalize">
               {tabConfig.theme.colorScheme}
@@ -766,9 +905,9 @@ function QuestionManager({
   questions: Question[];
   rounds: Round[];
   enableRounds: boolean;
-  onAdd: any;
-  onEdit: any;
-  onDelete: any;
+  onAdd: (newQ: Omit<Question, "id">, specificId?: number) => void;
+  onEdit: (oldId: number, newQ: Question) => void;
+  onDelete: (id: number) => void;
 }) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Partial<Question>>({});
@@ -806,12 +945,16 @@ function QuestionManager({
 
   const saveEdit = () => {
     if (editingId && editForm.text && editForm.answer && editForm.id) {
-      onEdit(editingId, {
-        id: Number(editForm.id),
-        text: editForm.text,
-        answer: editForm.answer,
-      });
-      setEditingId(null);
+      try {
+        onEdit(editingId, {
+          id: Number(editForm.id),
+          text: editForm.text,
+          answer: editForm.answer,
+        });
+        setEditingId(null);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to save question.");
+      }
     }
   };
 
@@ -854,8 +997,8 @@ function QuestionManager({
       </div>
 
       {isAdding && (
-        <div className="p-4 mb-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30 animate-scale-in">
-          <h4 className="font-bold text-emerald-400 mb-2">New Question</h4>
+        <div className="p-4 mb-4 rounded-lg bg-[rgb(var(--success))]/10 border border-[rgb(var(--success))]/30 animate-scale-in">
+          <h4 className="font-bold text-[rgb(var(--success))] mb-2">New Question</h4>
           <div className="space-y-3">
             {enableRounds && (
               <select
@@ -866,7 +1009,7 @@ function QuestionManager({
                     roundIdx: Number(e.target.value),
                   }))
                 }
-                className="w-full bg-black/30 border border-white/10 rounded p-2 text-white"
+                className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
               >
                 <option value={-1}>Auto-Assign Round / ID</option>
                 {rounds.map((r, idx) => (
@@ -878,7 +1021,7 @@ function QuestionManager({
             )}
             <textarea
               placeholder="Question Text"
-              className="w-full bg-black/30 border border-white/10 rounded p-2 text-white"
+              className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
               rows={2}
               value={addForm.text}
               onChange={(e) =>
@@ -888,7 +1031,7 @@ function QuestionManager({
             <input
               type="text"
               placeholder="Answer"
-              className="w-full bg-black/30 border border-white/10 rounded p-2 text-white"
+              className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
               value={addForm.answer}
               onChange={(e) =>
                 setAddForm((prev) => ({ ...prev, answer: e.target.value }))
@@ -896,13 +1039,13 @@ function QuestionManager({
             />
 
             {/* Media Inputs */}
-            <div className="flex flex-col gap-2 p-3 rounded bg-white/5 border border-white/10">
-              <label className="text-xs uppercase font-bold text-gray-400">
+            <div className="flex flex-col gap-2 p-3 rounded bg-[var(--fill)] border border-[var(--card-border)]">
+              <label className="text-xs uppercase font-bold text-[rgb(var(--text-secondary))]">
                 Attachment (Optional)
               </label>
               <div className="flex gap-2">
                 <select
-                  className="bg-black/30 border border-white/10 rounded p-2 text-white text-sm"
+                  className="bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))] text-sm"
                   value={addForm.mediaType || ""}
                   onChange={(e) =>
                     setAddForm((prev) => ({
@@ -928,7 +1071,7 @@ function QuestionManager({
                           ? "Image URL or Path"
                           : "Audio URL or Path"
                       }
-                      className="flex-1 bg-black/30 border border-white/10 rounded p-2 text-white text-sm"
+                      className="flex-1 bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))] text-sm"
                       value={addForm.mediaUrl || ""}
                       onChange={(e) =>
                         setAddForm((prev) => ({
@@ -937,7 +1080,7 @@ function QuestionManager({
                         }))
                       }
                     />
-                    <label className="cursor-pointer px-3 py-2 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 rounded text-xs font-bold flex items-center gap-1 whitespace-nowrap">
+                    <label className="cursor-pointer px-3 py-2 bg-[rgb(var(--color-primary))]/20 hover:bg-[rgb(var(--color-primary))]/40 text-[rgb(var(--color-primary))] rounded text-xs font-bold flex items-center gap-1 whitespace-nowrap">
                       <Upload size={14} /> Upload File
                       <input
                         type="file"
@@ -981,7 +1124,7 @@ function QuestionManager({
                 )}
               </div>
               {addForm.mediaUrl && (
-                <p className="text-[10px] text-gray-500 truncate">
+                <p className="text-[10px] text-[rgb(var(--text-secondary))] truncate">
                   Source: {addForm.mediaUrl.substring(0, 50)}...
                 </p>
               )}
@@ -990,13 +1133,13 @@ function QuestionManager({
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setIsAdding(false)}
-                className="px-3 py-1 text-sm text-gray-400 hover:text-white"
+                className="px-3 py-1 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAdd}
-                className="px-3 py-1 bg-emerald-600 rounded text-sm font-bold hover:bg-emerald-500"
+                className="px-3 py-1 bg-[rgb(var(--success))] text-white rounded text-sm font-bold hover:bg-[rgb(var(--success))]"
               >
                 Save Question
               </button>
@@ -1011,14 +1154,14 @@ function QuestionManager({
           return (
             <div
               key={q.id}
-              className="p-3 md:p-4 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 transition-colors flex flex-col md:flex-row gap-4 items-start group"
+              className="p-3 md:p-4 rounded-lg bg-[var(--fill)] border border-[var(--card-border)] hover:border-[var(--card-border)] transition-colors flex flex-col md:flex-row gap-4 items-start group"
             >
               <div className="flex items-center gap-2 w-full md:w-auto">
-                <div className="font-mono text-gray-500 w-8 shrink-0">
+                <div className="font-mono text-[rgb(var(--text-secondary))] w-8 shrink-0">
                   #{q.id}
                 </div>
                 {round && (
-                  <div className="md:hidden text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
+                  <div className="md:hidden text-xs px-2 py-0.5 rounded-full bg-[var(--fill)] text-[rgb(var(--text-secondary))]">
                     {round.title}
                   </div>
                 )}
@@ -1027,10 +1170,10 @@ function QuestionManager({
               {editingId === q.id ? (
                 <div className="flex-1 space-y-2 w-full">
                   <div className="flex gap-2 items-center">
-                    <label className="text-xs text-gray-400">ID:</label>
+                    <label className="text-xs text-[rgb(var(--text-secondary))]">ID:</label>
                     <input
                       type="number"
-                      className="bg-black/50 border border-white/20 rounded p-1 text-white w-20"
+                      className="bg-[var(--fill)] border border-[var(--card-border)] rounded p-1 text-[rgb(var(--text-primary))] w-20"
                       value={editForm.id}
                       onChange={(e) =>
                         setEditForm((prev) => ({
@@ -1041,14 +1184,14 @@ function QuestionManager({
                     />
                   </div>
                   <textarea
-                    className="w-full bg-black/50 border border-white/20 rounded p-2 text-white"
+                    className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
                     value={editForm.text}
                     onChange={(e) =>
                       setEditForm((prev) => ({ ...prev, text: e.target.value }))
                     }
                   />
                   <input
-                    className="w-full bg-black/50 border border-white/20 rounded p-2 text-white"
+                    className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
                     value={editForm.answer}
                     onChange={(e) =>
                       setEditForm((prev) => ({
@@ -1060,13 +1203,13 @@ function QuestionManager({
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={saveEdit}
-                      className="flex items-center gap-1 px-3 py-1 bg-green-600/20 text-green-400 rounded hover:bg-green-600/40"
+                      className="flex items-center gap-1 px-3 py-1 bg-[rgb(var(--success))]/15 text-[rgb(var(--success))] rounded hover:bg-[rgb(var(--success))]/40"
                     >
                       <Check size={14} /> Save
                     </button>
                     <button
                       onClick={() => setEditingId(null)}
-                      className="flex items-center gap-1 px-3 py-1 bg-red-600/20 text-red-400 rounded hover:bg-red-600/40"
+                      className="flex items-center gap-1 px-3 py-1 bg-[rgb(var(--danger))]/15 text-[rgb(var(--danger))] rounded hover:bg-[rgb(var(--danger))]/40"
                     >
                       <X size={14} /> Cancel
                     </button>
@@ -1078,7 +1221,7 @@ function QuestionManager({
                     <p className="font-medium text-[rgb(var(--text-primary))] mb-1 break-words">
                       {q.text}
                     </p>
-                    <p className="text-sm text-emerald-400 font-mono break-words">
+                    <p className="text-sm text-[rgb(var(--success))] font-mono break-words">
                       {q.answer}
                     </p>
                     {round && (
@@ -1090,7 +1233,7 @@ function QuestionManager({
                   <div className="flex gap-2 self-end md:self-start opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => startEdit(q)}
-                      className="p-2 hover:bg-blue-500/20 text-blue-400 rounded"
+                      className="p-2 hover:bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))] rounded"
                     >
                       <Edit2 size={16} />
                     </button>
@@ -1098,7 +1241,7 @@ function QuestionManager({
                       onClick={() => {
                         if (confirm(`Delete Question ${q.id}?`)) onDelete(q.id);
                       }}
-                      className="p-2 hover:bg-red-500/20 text-red-400 rounded"
+                      className="p-2 hover:bg-[rgb(var(--danger))]/15 text-[rgb(var(--danger))] rounded"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -1120,11 +1263,11 @@ function DataActions({
   config,
   questions,
 }: {
-  onReset: any;
-  onImport: any;
-  onExport: any;
-  config: any;
-  questions: any;
+  onReset: () => void;
+  onImport: (jsonData: string) => boolean;
+  onExport: () => void;
+  config: AppConfig;
+  questions: Question[];
 }) {
   const [fileName, setFileName] = useState("sajilo-quiz-data");
   const [showSample, setShowSample] = useState(false);
@@ -1200,21 +1343,21 @@ function DataActions({
           <span className="uppercase tracking-wider">Browser Storage Left</span>
           <span>{usage.used.toFixed(2)} MB used / ~5.00 MB limit</span>
         </div>
-        <div className="w-full bg-black/50 h-3 rounded-full overflow-hidden border border-[var(--card-border)]">
+        <div className="w-full bg-[var(--fill)] h-3 rounded-full overflow-hidden border border-[var(--card-border)]">
           <div
-            className={`h-full transition-all duration-500 ${usage.percent > 90 ? "bg-red-500" : usage.percent > 70 ? "bg-amber-500" : "bg-emerald-500"}`}
+            className={`h-full transition-all duration-500 ${usage.percent > 90 ? "bg-[rgb(var(--warning))]" : usage.percent > 70 ? "bg-[rgb(var(--warning))]" : "bg-[rgb(var(--success))]"}`}
             style={{ width: `${usage.percent}%` }}
           />
         </div>
-        <p className="text-[10px] text-gray-500 mt-2">
+        <p className="text-[10px] text-[rgb(var(--text-secondary))] mt-2">
           *Limit depends on the browser (usually 5MB-10MB). For large media,
           please put files in the <code>/public</code> folder and use relative
           paths.
         </p>
       </div>
 
-      <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-        <h4 className="font-bold text-blue-300 mb-4 flex items-center gap-2">
+      <div className="p-4 rounded-lg bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/20">
+        <h4 className="font-bold text-[rgb(var(--color-primary))] mb-4 flex items-center gap-2">
           <Download size={18} /> Export Data
         </h4>
         <div className="flex flex-col md:flex-row gap-4 items-end">
@@ -1227,26 +1370,26 @@ function DataActions({
           </div>
           <button
             onClick={onExport}
-            className="w-full md:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded font-bold transition-colors flex items-center justify-center gap-2"
+            className="w-full md:w-auto px-6 py-2.5 bg-[rgb(var(--success))] text-white hover:bg-[rgb(var(--success))] rounded font-bold transition-colors flex items-center justify-center gap-2"
           >
             <Download size={18} /> One-Click Backup
           </button>
           <button
             onClick={handleDownload}
-            className="w-full md:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded font-bold transition-colors"
+            className="w-full md:w-auto px-6 py-2.5 bg-[rgb(var(--color-primary))] hover:bg-[rgb(var(--color-secondary))] text-[rgb(var(--label-inverse))] rounded font-bold transition-colors"
           >
             Download JSON
           </button>
         </div>
       </div>
 
-      <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
-        <h4 className="font-bold text-purple-300 mb-4 flex items-center gap-2">
+      <div className="p-4 rounded-lg bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/20">
+        <h4 className="font-bold text-[rgb(var(--color-primary))] mb-4 flex items-center gap-2">
           <Upload size={18} /> Import Data
         </h4>
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
-            <label className="cursor-pointer px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded font-bold text-sm transition-colors inline-flex items-center gap-2">
+            <label className="cursor-pointer px-4 py-2 bg-[rgb(var(--color-primary))] hover:bg-[rgb(var(--color-secondary))] text-[rgb(var(--label-inverse))] rounded font-bold text-sm transition-colors inline-flex items-center gap-2">
               <Upload size={16} /> Choose File
               <input
                 type="file"
@@ -1257,24 +1400,24 @@ function DataActions({
             </label>
             <button
               onClick={() => setShowSample(!showSample)}
-              className="text-sm text-purple-400 hover:text-white underline"
+              className="text-sm text-[rgb(var(--color-primary))] hover:text-[rgb(var(--text-primary))] underline"
             >
               {showSample ? "Hide Sample" : "Show Sample Format"}
             </button>
           </div>
 
           {showSample && (
-            <div className="mt-2 p-3 bg-black/50 rounded border border-white/10 text-xs font-mono text-gray-400 overflow-x-auto">
+            <div className="mt-2 p-3 bg-[var(--fill)] rounded border border-[var(--card-border)] text-xs font-mono text-[rgb(var(--text-secondary))] overflow-x-auto">
               <pre>{SAMPLE_JSON}</pre>
             </div>
           )}
         </div>
       </div>
 
-      <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+      <div className="p-4 rounded-lg bg-[rgb(var(--warning))]/10 border border-[rgb(var(--danger))]/20">
         <button
           onClick={onReset}
-          className="w-full md:w-auto px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 rounded flex items-center justify-center gap-2 transition-colors"
+          className="w-full md:w-auto px-4 py-2 bg-[rgb(var(--danger))]/15 hover:bg-[rgb(var(--danger))]/40 text-[rgb(var(--danger))] rounded flex items-center justify-center gap-2 transition-colors"
         >
           <RotateCcw size={18} /> Factory Reset (Clear All Changes)
         </button>
@@ -1297,7 +1440,7 @@ function HelpGuide() {
 
       <div className="space-y-6">
         <div>
-          <h4 className="text-sm uppercase tracking-wider text-purple-400 font-bold mb-3">
+          <h4 className="text-sm uppercase tracking-wider text-[rgb(var(--color-primary))] font-bold mb-3">
             Global
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1307,7 +1450,7 @@ function HelpGuide() {
         </div>
 
         <div>
-          <h4 className="text-sm uppercase tracking-wider text-purple-400 font-bold mb-3">
+          <h4 className="text-sm uppercase tracking-wider text-[rgb(var(--color-primary))] font-bold mb-3">
             Grid Page
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1319,7 +1462,7 @@ function HelpGuide() {
         </div>
 
         <div>
-          <h4 className="text-sm uppercase tracking-wider text-purple-400 font-bold mb-3">
+          <h4 className="text-sm uppercase tracking-wider text-[rgb(var(--color-primary))] font-bold mb-3">
             Question Page
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1388,37 +1531,37 @@ function AboutCompany() {
           <img
             src="/company.png"
             alt="Sajilo Digital Logo"
-            className="w-24 h-24 object-contain shadow-[0_0_30px_rgba(168,85,247,0.3)] rounded-2xl p-2 bg-white/5 border border-white/10"
+            className="w-24 h-24 object-contain shadow-[0_0_30px_rgba(var(--color-primary),0.3)] rounded-2xl p-2 bg-[var(--fill)] border border-[var(--card-border)]"
           />
         </div>
         <h2 className="text-4xl font-extrabold title-gradient italic tracking-tight">
           Sajilo Digital
         </h2>
-        <p className="text-purple-300 font-medium tracking-[0.2em] uppercase text-sm">
+        <p className="text-[rgb(var(--color-primary))] font-medium tracking-[0.2em] uppercase text-sm">
           Your Vision, Our Innovation
         </p>
-        <div className="max-w-2xl mx-auto p-6 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md">
-          <p className="text-gray-300 italic leading-relaxed text-sm">
+        <div className="max-w-2xl mx-auto p-6 rounded-xl bg-[var(--fill)] border border-[var(--card-border)] backdrop-blur-md">
+          <p className="text-[rgb(var(--text-secondary))] italic leading-relaxed text-sm">
             "We build technologies that lasts forever."
           </p>
         </div>
       </div>
 
       {/* Designer / CTO Credit */}
-      <div className="p-[1px] rounded-2xl bg-gradient-to-br from-purple-500/30 via-transparent to-transparent">
-        <div className="glass-panel p-8 bg-gradient-to-br from-purple-500/10 to-transparent">
+      <div className="p-[1px] rounded-2xl bg-gradient-to-br from-[rgb(var(--color-primary))]/30 via-transparent to-transparent">
+        <div className="glass-panel p-8 bg-gradient-to-br from-[rgb(var(--color-primary))]/10 to-transparent">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="p-4 rounded-full bg-purple-500/20 border border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
-              <User size={40} className="text-purple-300" />
+            <div className="p-4 rounded-full bg-[rgb(var(--color-primary))]/20 border border-[rgb(var(--color-primary))]/30 shadow-[0_0_20px_rgba(var(--color-primary),0.15)]">
+              <User size={40} className="text-[rgb(var(--color-primary))]" />
             </div>
             <div className="text-center md:text-left">
-              <h3 className="text-2xl font-bold text-white mb-1 text-sh-white">
+              <h3 className="text-2xl font-bold text-[rgb(var(--text-primary))] mb-1">
                 Arun Neupane
               </h3>
-              <p className="text-purple-400 font-bold uppercase tracking-wider text-[10px] mb-3">
+              <p className="text-[rgb(var(--color-primary))] font-bold uppercase tracking-wider text-[10px] mb-3">
                 Chief Technology Officer & Lead Designer
               </p>
-              <p className="text-gray-400 text-sm max-w-xl leading-relaxed">
+              <p className="text-[rgb(var(--text-secondary))] text-sm max-w-xl leading-relaxed">
                 The architect behind the visual identity and technological
                 framework of this application. Focused on blending aesthetic
                 excellence with high-performance ecosystem architecture.
@@ -1430,8 +1573,8 @@ function AboutCompany() {
 
       {/* Services Grid */}
       <div className="space-y-6">
-        <h3 className="text-xl font-bold text-white flex items-center gap-3">
-          <Sparkles className="text-purple-400" />
+        <h3 className="text-xl font-bold text-[rgb(var(--text-primary))] flex items-center gap-3">
+          <Sparkles className="text-[rgb(var(--color-primary))]" />
           Core Capabilities
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1469,9 +1612,9 @@ function AboutCompany() {
       </div>
 
       {/* Contact & Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-[var(--card-border)]">
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-white">Connect with Us</h3>
+          <h3 className="text-xl font-bold text-[rgb(var(--text-primary))]">Connect with Us</h3>
           <div className="space-y-4">
             <ContactInfo
               icon={<MapPin size={18} />}
@@ -1509,19 +1652,19 @@ function AboutCompany() {
         </div>
 
         <div className="space-y-6">
-          <h3 className="text-xl font-bold text-white">Sajilo Terminal</h3>
-          <div className="p-6 rounded-xl bg-black/40 border border-white/10 font-mono text-sm space-y-1 relative overflow-hidden group">
+          <h3 className="text-xl font-bold text-[rgb(var(--text-primary))]">Sajilo Terminal</h3>
+          <div className="p-6 rounded-xl bg-[var(--fill)] border border-[var(--card-border)] font-mono text-sm space-y-1 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
               <Terminal size={60} />
             </div>
-            <div className="text-purple-400 text-xs">
+            <div className="text-[rgb(var(--color-primary))] text-xs">
               SajiloDigital Pvt. Ltd
             </div>
-            <div className="text-gray-500 text-[10px]">
+            <div className="text-[rgb(var(--text-secondary))] text-[10px]">
               Architecture: verified_valid
             </div>
-            <div className="text-gray-300 mt-4 text-xs">$ status</div>
-            <div className="text-emerald-400 text-xs animate-pulse">
+            <div className="text-[rgb(var(--text-secondary))] mt-4 text-xs">$ status</div>
+            <div className="text-[rgb(var(--success))] text-xs animate-pulse">
               &gt;&gt; OPTIMIZED
             </div>
           </div>
@@ -1529,7 +1672,7 @@ function AboutCompany() {
             href="https://sajilodigital.com.np"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-purple-600/10 border border-purple-500/30 hover:bg-purple-600/20 transition-all text-white font-bold group"
+            className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/30 hover:bg-[rgb(var(--color-primary))]/20 transition-all text-[rgb(var(--text-primary))] font-bold group"
           >
             Visit Official Website
             <ExternalLink
@@ -1539,8 +1682,30 @@ function AboutCompany() {
           </a>
         </div>
       </div>
-      <div className="pt-8">
-        <License />
+      <div className="pt-8 text-center space-y-4">
+        <div className="flex items-center justify-center gap-6 text-sm">
+          <Link
+            to="/privacy"
+            className="text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] underline-offset-4 hover:underline transition-colors"
+          >
+            Privacy Policy
+          </Link>
+          <Link
+            to="/terms"
+            className="text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] underline-offset-4 hover:underline transition-colors"
+          >
+            Terms of Use
+          </Link>
+          <Link
+            to="/"
+            className="text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] underline-offset-4 hover:underline transition-colors"
+          >
+            Question Grid
+          </Link>
+        </div>
+        <div>
+          <License />
+        </div>
       </div>
     </div>
   );
@@ -1556,8 +1721,8 @@ function ServiceCard({
   desc: string;
 }) {
   return (
-    <div className="p-5 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-purple-500/30 transition-all group hover:scale-[1.02] shadow-sm">
-      <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 group-hover:bg-purple-500/20 transition-all shadow-inner">
+    <div className="p-5 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-[rgb(var(--color-primary))]/30 transition-all group hover:scale-[1.02] shadow-sm">
+      <div className="w-10 h-10 rounded-lg bg-[rgb(var(--color-primary))]/10 flex items-center justify-center text-[rgb(var(--color-primary))] mb-4 group-hover:scale-110 group-hover:bg-[rgb(var(--color-primary))]/20 transition-all shadow-inner">
         {icon}
       </div>
       <h4 className="font-bold text-[rgb(var(--text-primary))] mb-2 text-sm">
@@ -1572,8 +1737,8 @@ function ServiceCard({
 
 function ContactInfo({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="flex items-center gap-4 text-gray-400 hover:text-white transition-colors group cursor-pointer">
-      <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-purple-400 group-hover:bg-purple-500/20 group-hover:text-purple-300 transition-all">
+    <div className="flex items-center gap-4 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors group cursor-pointer">
+      <div className="w-8 h-8 rounded-lg bg-[var(--fill)] flex items-center justify-center text-[rgb(var(--color-primary))] group-hover:bg-[rgb(var(--color-primary))]/20 group-hover:text-[rgb(var(--color-primary))] transition-all">
         {icon}
       </div>
       <span className="text-[11px] font-medium tracking-wide">{text}</span>
@@ -1587,7 +1752,7 @@ function SocialLink({ icon, href }: { icon: React.ReactNode; href: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-white hover:bg-purple-500/20 hover:border-purple-500/50 transition-all hover:-translate-y-1"
+      className="p-3 rounded-xl bg-[var(--fill)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--color-primary))]/20 hover:border-[rgb(var(--color-primary))]/50 transition-all hover:-translate-y-1"
     >
       {icon}
     </a>
@@ -1602,8 +1767,8 @@ function ShortcutItem({
   action: string;
 }) {
   return (
-    <div className="flex items-center justify-between p-3 rounded bg-white/5 border border-white/10">
-      <span className="font-mono text-purple-400 bg-black/40 px-2 py-1 rounded text-sm">
+    <div className="flex items-center justify-between p-3 rounded bg-[var(--fill)] border border-[var(--card-border)]">
+      <span className="font-mono text-[rgb(var(--color-primary))] bg-[var(--fill)] px-2 py-1 rounded text-sm">
         {keyBind}
       </span>
       <span className="text-sm font-medium">{action}</span>
@@ -1628,7 +1793,7 @@ function InputGroup({
   type = "text",
 }: {
   label: string;
-  value: any;
+  value: string | number;
   onChange: (v: string) => void;
   type?: string;
 }) {
@@ -1641,7 +1806,7 @@ function InputGroup({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded px-3 py-2 text-[rgb(var(--text-primary))] focus:border-purple-500 outline-none transition-colors"
+        className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded px-3 py-2 text-[rgb(var(--text-primary))] focus:border-[rgb(var(--color-primary))] outline-none transition-colors"
       />
     </div>
   );
@@ -1657,19 +1822,15 @@ function Checkbox({
   onChange: (c: boolean) => void;
 }) {
   return (
-    <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white/5 rounded select-none">
-      <div
-        className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${checked ? "bg-purple-600 border-purple-500" : "border-gray-500"}`}
-      >
-        {checked && <Check size={14} className="text-white" />}
-      </div>
-      <span className="text-sm text-gray-300">{label}</span>
+    <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-[var(--fill)] rounded select-none">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="hidden"
+        className="ios-checkbox"
+        aria-label={label || undefined}
       />
+      <span className="text-sm text-[rgb(var(--text-secondary))]">{label}</span>
     </label>
   );
 }
@@ -1822,8 +1983,8 @@ function TeamManagement() {
     <div className="space-y-8 animate-fade-in">
       <SectionTitle title="Manage Teams" />
 
-      <div className="p-6 rounded-xl bg-purple-500/10 border border-purple-500/20">
-        <h4 className="font-bold text-purple-300 mb-4 flex items-center gap-2">
+      <div className="p-6 rounded-xl bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/20">
+        <h4 className="font-bold text-[rgb(var(--color-primary))] mb-4 flex items-center gap-2">
           <Users size={18} /> Add New Team
         </h4>
         <div className="flex flex-col sm:flex-row gap-4">
@@ -1834,13 +1995,13 @@ function TeamManagement() {
               value={newTeamName}
               onChange={(e) => setNewTeamName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded px-4 py-2.5 text-[rgb(var(--text-primary))] focus:border-purple-500 outline-none transition-colors"
+              className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded px-4 py-2.5 text-[rgb(var(--text-primary))] focus:border-[rgb(var(--color-primary))] outline-none transition-colors"
             />
           </div>
           <button
             onClick={handleAdd}
             disabled={!newTeamName.trim()}
-            className="w-full sm:w-auto px-6 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed rounded font-bold transition-all flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-6 py-2.5 bg-[rgb(var(--color-primary))] hover:bg-[rgb(var(--color-secondary))] text-[rgb(var(--label-inverse))] disabled:opacity-50 disabled:cursor-not-allowed rounded font-bold transition-all flex items-center justify-center gap-2"
           >
             <Plus size={18} /> Add
           </button>
@@ -1856,16 +2017,16 @@ function TeamManagement() {
           teams.map((team) => (
             <div
               key={team.id}
-              className="p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] flex items-center justify-between group hover:border-purple-500/30 transition-all"
+              className="p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] flex items-center justify-between group hover:border-[rgb(var(--color-primary))]/30 transition-all"
             >
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-[rgb(var(--text-primary))] truncate">{team.name}</h3>
-                <p className="text-sm text-purple-400 font-black tracking-wider mt-1">Score: {team.score}</p>
+                <p className="text-sm text-[rgb(var(--color-primary))] font-black tracking-wider mt-1">Score: {team.score}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => deleteTeam(team.id)}
-                  className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="p-2 text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger))]/10 rounded-lg transition-colors"
                   title="Remove Team"
                 >
                   <Trash2 size={18} />
