@@ -1,4 +1,6 @@
-export const config = {
+import type { AppConfig } from "../context/DataContext";
+
+export const config: AppConfig = {
   // --- BRANDING ---
   appName: "Sajilo Quiz",
   companyName: "Sajilo Digital",
