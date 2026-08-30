@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-// @ts-ignore
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useData } from '../context/DataContext';
-import { Download, RefreshCw, X } from 'lucide-react';
+import { Download, RefreshCw, X, Sparkles } from 'lucide-react';
 
 export default function UpdateDetector() {
     const { exportData } = useData();
@@ -14,9 +13,11 @@ export default function UpdateDetector() {
         updateServiceWorker,
     } = useRegisterSW({
         onRegistered(r: ServiceWorkerRegistration | undefined) {
-            console.log('SW Registered: ' + r);
+            // eslint-disable-next-line no-console
+            console.log('SW Registered: ' + (r ? 'ready' : 'pending'));
         },
-        onRegisterError(error: any) {
+        onRegisterError(error: unknown) {
+            // eslint-disable-next-line no-console
             console.log('SW registration error', error);
         },
     });
@@ -43,37 +44,39 @@ export default function UpdateDetector() {
     if (!show) return null;
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="bg-elevated border border-accent/20 rounded-2xl p-6 shadow-2xl backdrop-blur-xl max-w-sm">
+        <div className="fixed bottom-6 right-6 z-50 animate-fade-in">
+            <div className="glass-panel p-6 shadow-2xl max-w-sm">
                 <div className="flex justify-between items-start mb-4">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                        <RefreshCw className="w-5 h-5 text-primary animate-spin-slow" />
+                    <div className="bg-[rgb(var(--color-primary))]/15 p-2 rounded-lg">
+                        <Sparkles className="w-5 h-5 text-[rgb(var(--color-primary))]" />
                     </div>
                     <button
                         onClick={close}
-                        className="p-1 hover:bg-white/5 rounded-full transition-colors"
+                        className="p-1 hover:bg-[var(--fill)] rounded-full transition-colors"
+                        aria-label="Dismiss update notice"
                     >
-                        <X className="w-4 h-4 text-secondary" />
+                        <X className="w-4 h-4 text-[rgb(var(--text-secondary))]" />
                     </button>
                 </div>
 
-                <h3 className="text-lg font-bold text-primary mb-2">Update Available!</h3>
-                <p className="text-secondary text-sm mb-6 leading-relaxed">
+                <h3 className="text-lg font-bold text-[rgb(var(--text-primary))] mb-2">Update available</h3>
+                <p className="text-[rgb(var(--text-secondary))] text-sm mb-6 leading-relaxed">
                     A new version of Sajilo Quiz is ready. We recommend downloading your current data before updating.
                 </p>
 
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={handleBackupAndUpdate}
-                        className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white py-3 px-4 rounded-xl transition-all font-medium text-sm"
+                        className="btn-primary flex items-center justify-center gap-2 text-sm py-3"
                     >
                         <Download className="w-4 h-4" />
-                        Backup & Update Now
+                        Backup &amp; Update Now
                     </button>
                     <button
                         onClick={() => updateServiceWorker(true)}
-                        className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-primary py-3 px-4 rounded-xl transition-all font-medium text-sm border border-white/10"
+                        className="btn-secondary flex items-center justify-center gap-2 text-sm py-3"
                     >
+                        <RefreshCw className="w-4 h-4" />
                         Just Update
                     </button>
                 </div>

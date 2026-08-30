@@ -1,19 +1,23 @@
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type Shortcut = {
+type Entry = {
     keys: string[];
     description: string;
     category: string;
+    kind?: 'key' | 'gesture';
 };
 
-const shortcuts: Shortcut[] = [
+const entries: Entry[] = [
     // Global
     { keys: ['F'], description: 'Toggle Fullscreen', category: 'Global' },
-    { keys: ['?'], description: 'Show/Hide Keyboard Shortcuts', category: 'Global' },
+    { keys: ['?'], description: 'Show / Hide Shortcuts & Gestures', category: 'Global' },
 
     // Grid Page
-    { keys: ['Alt', 'Click'], description: 'Re-open visited question', category: 'Grid Page' },
+    { keys: ['Alt', 'Click'], description: 'Re-open a visited question', category: 'Grid Page' },
+    { keys: ['Double-click'], description: 'Open a question from the grid', category: 'Grid Page', kind: 'gesture' },
+    { keys: ['Right-click'], description: 'Open quick actions menu', category: 'Grid Page', kind: 'gesture' },
 
     // Question Page
     { keys: ['Space'], description: 'Reveal / Hide Answer', category: 'Question Page' },
@@ -24,17 +28,26 @@ const shortcuts: Shortcut[] = [
     { keys: ['+', ']'], description: 'Increase Text Size', category: 'Question Page' },
     { keys: ['-', '['], description: 'Decrease Text Size', category: 'Question Page' },
     { keys: ['0'], description: 'Reset Text Size', category: 'Question Page' },
+    { keys: ['Swipe left / right'], description: 'Previous / next question', category: 'Question Page', kind: 'gesture' },
+    { keys: ['Swipe up'], description: 'Toggle Quick Peek', category: 'Question Page', kind: 'gesture' },
+    { keys: ['Double-tap'], description: 'Reveal / Hide answer', category: 'Question Page', kind: 'gesture' },
 ];
 
 type Props = {
     isOpen: boolean;
     onClose: () => void;
-    currentPage?: 'grid' | 'question';
 };
 
 export default function ShortcutsModal({ isOpen, onClose }: Props) {
-    // Group shortcuts by category
-    const categories = Array.from(new Set(shortcuts.map(s => s.category)));
+    const closeRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            closeRef.current?.focus();
+        }
+    }, [isOpen]);
+
+    const categories = Array.from(new Set(entries.map(e => e.category)));
 
     return (
         <AnimatePresence>
@@ -45,14 +58,15 @@ export default function ShortcutsModal({ isOpen, onClose }: Props) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Keyboard shortcuts and gestures"
                 >
-                    {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
                         onClick={onClose}
                     />
 
-                    {/* Modal Content */}
                     <motion.div
                         className="relative z-10 w-[95vw] max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl glass-panel p-6 md:p-8"
                         initial={{ scale: 0.9, opacity: 0 }}
@@ -60,48 +74,48 @@ export default function ShortcutsModal({ isOpen, onClose }: Props) {
                         exit={{ scale: 0.9, opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {/* Header */}
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <h2 className="text-2xl md:text-3xl font-bold text-white">
-                                    Keyboard Shortcuts
+                                <h2 className="text-2xl md:text-3xl font-bold text-[rgb(var(--text-primary))]">
+                                    Shortcuts &amp; Gestures
                                 </h2>
-                                <p className="text-gray-400 text-sm mt-1">
-                                    All keyboard shortcuts for quick navigation and control
+                                <p className="text-[rgb(var(--text-secondary))] text-sm mt-1">
+                                    Keyboard shortcuts on desktop, swipe gestures on touch devices
                                 </p>
                             </div>
                             <button
+                                ref={closeRef}
                                 onClick={onClose}
-                                className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                                className="p-2 rounded-lg bg-[var(--fill)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--color-primary))]/15 transition-all"
                                 title="Close (Esc)"
+                                aria-label="Close shortcuts"
                             >
                                 <X size={20} />
                             </button>
                         </div>
 
-                        {/* Shortcuts List by Category */}
                         <div className="space-y-6">
                             {categories.map(category => (
                                 <div key={category}>
-                                    <h3 className="text-sm uppercase tracking-wider text-purple-400 font-bold mb-3">
+                                    <h3 className="text-sm uppercase tracking-wider text-[rgb(var(--color-primary))] font-bold mb-3">
                                         {category}
                                     </h3>
                                     <div className="space-y-2">
-                                        {shortcuts
-                                            .filter(s => s.category === category)
-                                            .map((shortcut, idx) => (
+                                        {entries
+                                            .filter(e => e.category === category)
+                                            .map((entry, idx) => (
                                                 <div
                                                     key={idx}
-                                                    className="p-3 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-colors flex items-center justify-between"
+                                                    className="p-3 rounded-lg bg-[var(--fill)] border border-[var(--card-border)] hover:border-[rgb(var(--color-primary))]/40 transition-colors flex items-center justify-between gap-3"
                                                 >
-                                                    <span className="text-gray-200 font-medium text-sm">
-                                                        {shortcut.description}
+                                                    <span className="text-[rgb(var(--text-primary))] font-medium text-sm">
+                                                        {entry.description}
                                                     </span>
-                                                    <div className="flex gap-1">
-                                                        {shortcut.keys.map((key, keyIdx) => (
+                                                    <div className="flex gap-1 flex-wrap justify-end">
+                                                        {entry.keys.map((key, keyIdx) => (
                                                             <kbd
                                                                 key={keyIdx}
-                                                                className="px-2.5 py-1 bg-gradient-to-b from-white/10 to-white/5 border border-white/20 rounded text-xs font-mono text-purple-300 shadow-lg min-w-[2rem] text-center"
+                                                                className={`px-2.5 py-1 bg-gradient-to-b from-[rgb(var(--color-primary))]/20 to-transparent border border-[rgb(var(--color-primary))]/30 rounded text-xs font-mono text-[rgb(var(--color-primary))] shadow-lg min-w-[2rem] text-center`}
                                                             >
                                                                 {key}
                                                             </kbd>
@@ -114,10 +128,9 @@ export default function ShortcutsModal({ isOpen, onClose }: Props) {
                             ))}
                         </div>
 
-                        {/* Footer */}
-                        <div className="mt-6 pt-4 border-t border-white/10 text-center text-xs text-gray-500">
-                            Press <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20">Esc</kbd> or{' '}
-                            <kbd className="px-2 py-1 bg-white/10 rounded border border-white/20">?</kbd> to close
+                        <div className="mt-6 pt-4 border-t border-[var(--separator)] text-center text-xs text-[rgb(var(--text-secondary))]">
+                            Press <kbd className="px-2 py-1 bg-[var(--fill)] rounded border border-[var(--card-border)]">Esc</kbd> or{' '}
+                            <kbd className="px-2 py-1 bg-[var(--fill)] rounded border border-[var(--card-border)]">?</kbd> to close
                         </div>
                     </motion.div>
                 </motion.div>
