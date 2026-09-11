@@ -1920,8 +1920,8 @@ function HelpGuide() {
         </li>
         <li>
           <strong className="text-[rgb(var(--text-primary))]">Install:</strong>{" "}
-          Click 'Install App' on the main screen to install this quiz as a
-          native application.
+          Click 'Install App' in the footer or on the main screen to install
+          this quiz as a native application.
         </li>
         <li>
           <strong className="text-[rgb(var(--text-primary))]">

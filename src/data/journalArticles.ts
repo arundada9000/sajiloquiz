@@ -39,19 +39,19 @@ export const journalArticles: JournalArticle[] = [
       {
         heading: "On the grid page",
         body: [
-          "Click any numbered card to open its question. Alt+Click re-opens a question you already answered, which is handy for a tiebreak or a retake. Right-click opens the quick actions menu with random question, admin and backup options.",
+          "Click any numbered card to open its question. Alt+Click re-opens a question you already answered, which is handy for a tiebreak or a retake. Right-click a card to open its per-question menu (open, mark or unmark visited, mark for review, snap or restore that single question). Right-click empty space (or long-press the page) for the global quick actions menu with random question, admin and backup options.",
         ],
       },
       {
         heading: "On the question page",
         body: [
-          "Space reveals or hides the answer, and stopping the timer on reveal is automatic by design. Esc goes back to the grid (or closes an open modal first). Q opens the questions overview so you can jump to any question number. T starts and pauses the timer, R resets it to the full default. The square bracket keys and plus and minus resize the question text for the back row of a busy hall, and 0 resets the size.",
+          "Space reveals or hides the answer, and stopping the timer on reveal is automatic by design. Esc goes back to the grid (or closes an open modal first). Q opens the questions overview so you can jump to any question number. T starts and pauses the timer, R resets it to the full default. The Read button speaks the question aloud, and once the answer is revealed it reads that too. The square bracket keys and plus and minus resize the question text for the back row of a busy hall, and 0 resets the size.",
         ],
       },
       {
         heading: "Touch gestures",
         body: [
-          "On a tablet or phone, swipe left or right to move to the next or previous question. Double-tap the question area reveals or hides the answer. On the grid, double-tap opens a question and right-long-press opens the quick actions menu.",
+          "On a tablet or phone, swipe left or right to move to the next or previous question. Double-tap the question area reveals or hides the answer. On the grid, double-tap opens a question and a long-press on a card opens that card's per-question menu.",
         ],
       },
     ],
@@ -171,7 +171,7 @@ export const journalArticles: JournalArticle[] = [
       {
         heading: "During the rounds",
         body: [
-          "Click a card, read the question out loud, and start the timer. Space reveals the answer, and the reveal stops the timer automatically. Award points to the active team with the correct, bonus and penalty buttons. The scoreboard (press S) keeps the live leaderboard on screen.",
+          "Click a card, read the question out loud (or press Read to have the app speak it), and start the timer. Space reveals the answer, and the reveal stops the timer automatically. Award points to the active team with the correct, bonus and penalty buttons. The scoreboard (press S) keeps the live leaderboard on screen.",
         ],
       },
       {
@@ -201,7 +201,7 @@ export const journalArticles: JournalArticle[] = [
       {
         heading: "Installing the app",
         body: [
-          "On desktop, use the Install button on the grid page or the install icon in the address bar. On mobile, use Add to Home Screen from the browser menu. The installed app opens fullscreen without a browser bar, just like a native app.",
+          "On desktop, use the Install App button in the footer, the Install button on the grid page, or the install icon in the address bar. On mobile, use Add to Home Screen from the browser menu. The installed app opens fullscreen without a browser bar, just like a native app.",
         ],
       },
       {

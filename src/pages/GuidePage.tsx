@@ -81,6 +81,7 @@ const shortcutGroups: Array<{ category: string; items: Array<{ keys: string; act
       { keys: "T", action: "Start or pause timer" },
       { keys: "R", action: "Reset timer" },
       { keys: "M", action: "Mark or unmark the question" },
+      { keys: "Read", action: "Speak the question aloud (reads the answer once revealed)" },
       { keys: "] or +", action: "Increase text size" },
       { keys: "[ or -", action: "Decrease text size" },
       { keys: "0", action: "Reset text size" },
@@ -133,7 +134,7 @@ export default function GuidePage() {
               ))}
 
               {/* Keyboard shortcuts reference */}
-              <section>
+              <section id="shortcuts">
                 <h2 className="text-lg font-bold mb-2">Keyboard shortcuts</h2>
                 {shortcutGroups.map((group) => (
                   <div key={group.category} className="mt-4">
@@ -157,7 +158,7 @@ export default function GuidePage() {
                 ))}
               </section>
 
-              <section id="shortcuts">
+              <section>
                 <h2 className="text-lg font-bold mb-2">Still have questions</h2>
                 <p className="text-[rgb(var(--text-secondary))]">
                   The{" "}

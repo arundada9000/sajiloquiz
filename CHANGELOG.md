@@ -38,6 +38,19 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - Footer now links the author's portfolio and all personal socials
   (GitHub, LinkedIn, X, YouTube, Instagram, Facebook).
 
+### Fixed
+- PWA install prompt not appearing in development: the service worker is now
+  served during `vite dev` (`devOptions.enabled`) and the install-prompt event
+  is captured at module load instead of after mount, so the footer and grid
+  install buttons reliably offer install and give accurate fallback hints.
+  The generated `dev-dist` folder is gitignored.
+
+### Changed
+- Docs synced with the app: guide shortcuts section gets the correct `#shortcuts`
+  anchor and a Read entry, FAQ references the guide's Getting started section,
+  journal articles describe the per-question context menu and footer install
+  button, and the Admin quick tips mention the footer install location.
+
 ## [1.2.0] - 2026-08-31
 
 ### Added

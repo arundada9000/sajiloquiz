@@ -65,6 +65,6 @@ export const faqItems: FaqItem[] = [
   {
     question: "How do I get started quickly?",
     answer:
-      "Press the Quick Tour button in the footer for a short walkthrough of the major features, follow the Step-by-Step Quick Start section of the guide, or just open the grid and click the first question card.",
+      "Press the Quick Tour button in the footer for a short walkthrough of the major features, follow the Getting started section of the user guide, or just open the grid and click the first question card.",
   },
 ];
