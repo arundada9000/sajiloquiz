@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { site, pwaShortcuts } from "./src/config/site";
+import { faqItems } from "./src/data/faqs";
 
 // Tint value used across manifest/meta. RGB string -> hex.
 const themeHex = site.manifest.themeColor;
@@ -40,40 +41,14 @@ const ldFaq = JSON.stringify(
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: "Does Sajilo Quiz need an internet connection?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "No. It is an installable Progressive Web App. Once loaded, the whole quiz, including your questions, images and sounds, runs offline. That is exactly why it was built: quiz venues often have unreliable internet.",
-        },
+    mainEntity: faqItems.map((f) => ({
+      "@type": "Question",
+      name: f.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: f.answer,
       },
-      {
-        "@type": "Question",
-        name: "How do I add my own questions?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Open the Admin Panel from the home screen. You can create questions and rounds, attach images and audio, and everything is saved in your browser on your device.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Is my quiz data uploaded anywhere?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "No. Questions, scores and settings live in your browser's local storage on your own device. Nothing you create is sent to a server.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Is Sajilo Quiz free?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Yes, completely free. It was built for real quiz competitions and is shared so anyone can run a smooth quiz event with it.",
-        },
-      },
-    ],
+    })),
   },
   null,
   2,
@@ -128,6 +103,9 @@ function htmlInject(): Plugin {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${base}/</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
   <url><loc>${base}/#/admin</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
+  <url><loc>${base}/#/guide</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
+  <url><loc>${base}/#/journal</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
+  <url><loc>${base}/#/faq</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
   <url><loc>${base}/#/privacy</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
   <url><loc>${base}/#/terms</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
 </urlset>

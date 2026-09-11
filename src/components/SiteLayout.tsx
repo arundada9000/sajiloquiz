@@ -11,9 +11,21 @@ import {
   Heart,
   ArrowUpRight,
   ArrowUp,
+  Linkedin,
+  Youtube,
+  Instagram,
+  Facebook,
+  Twitter,
+  Globe,
+  Download,
+  Sparkles,
+  PlayCircle,
 } from "lucide-react";
 import { site } from "../config/site";
 import { useData } from "../context/DataContext";
+import { useInstallPrompt } from "../hooks/useInstallPrompt";
+import { useDialog } from "../context/DialogContext";
+import type { SocialHandle } from "../config/site";
 
 type NavItem = {
   to: string;
@@ -81,11 +93,33 @@ const col = {
 export default function SiteLayout({ children }: { children: ReactNode }) {
   const { appConfig } = useData();
   const { pathname } = useLocation();
+  const { canInstall, appInstalled, install } = useInstallPrompt();
+  const dialog = useDialog();
+
+  // Re-open the onboarding tour from the footer (Onboarding.tsx listens for it).
+  const openTour = () => {
+    window.dispatchEvent(new CustomEvent("sajilo:onboarding"));
+  };
+
+  const handleInstallClick = () => {
+    if (canInstall) {
+      install();
+    } else {
+      dialog.toast(
+        "info",
+        "Install Sajilo Quiz",
+        appInstalled
+          ? "Sajilo Quiz is already installed on this device."
+          : "Use your browser menu - Install App / Add to Home Screen.",
+      );
+    }
+  };
 
   const navItems: NavItem[] = [
     { to: "/", label: "Grid", icon: <Home size={16} />, end: true },
     { to: "/guide", label: "Guide", icon: <BookOpen size={16} /> },
     { to: "/journal", label: "Journal", icon: <Layers size={16} /> },
+    { to: "/faq", label: "FAQ", icon: <PlayCircle size={16} /> },
     { to: "/admin", label: "Admin", icon: <Settings size={16} /> },
   ];
 
@@ -175,7 +209,16 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
               <li><FooterLink to="/">Question Grid</FooterLink></li>
               <li><FooterLink to="/guide">User Guide</FooterLink></li>
               <li><FooterLink to="/journal">Journal</FooterLink></li>
-              <li><FooterLink to="/admin">Admin Panel</FooterLink></li>
+              <li><FooterLink to="/faq">FAQ</FooterLink></li>
+              <li>
+                <button
+                  onClick={openTour}
+                  className="relative inline-flex items-center gap-1.5 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors duration-300 group/link px-2 py-1 rounded-lg -mx-2 hover-tint"
+                >
+                  <Sparkles size={14} />
+                  Quick Tour
+                </button>
+              </li>
             </ul>
           </motion.div>
 
@@ -214,6 +257,20 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
             <ul className="space-y-3">
               <li>
                 <a
+                  href={site.author.portfolio}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] transition-all duration-300 group/connect"
+                >
+                  <Globe size={15} className="transition-transform duration-300 group-hover/connect:-translate-y-0.5 group-hover/connect:scale-110" />
+                  <span className="leading-tight">
+                    Created by {site.author.name}
+                    <ArrowUpRight size={12} className="inline -mt-1 opacity-0 -translate-x-1 group-hover/connect:opacity-100 group-hover/connect:translate-x-0 transition-all duration-300" />
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
                   href={`mailto:${site.author.email}`}
                   className="inline-flex items-center gap-2 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] transition-all duration-300 group/connect"
                 >
@@ -221,43 +278,84 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
                   <span className="leading-tight">{site.author.email}</span>
                 </a>
               </li>
-              <li>
+            </ul>
+
+            {/* Install App button */}
+            <div className="pt-1">
+              <button
+                onClick={handleInstallClick}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
+                  appInstalled
+                    ? "border border-[rgb(var(--success))]/40 bg-[rgb(var(--success))]/10 text-[rgb(var(--success))]"
+                    : "bg-[rgb(var(--color-primary))] text-[rgb(var(--label-inverse))] shadow-[0_2px_12px_rgba(var(--color-primary),0.35)] hover:shadow-[0_4px_20px_rgba(var(--color-primary),0.5)] hover:-translate-y-0.5"
+                }`}
+              >
+                {appInstalled ? (
+                  <>
+                    <Sparkles size={15} /> Installed
+                  </>
+                ) : (
+                  <>
+                    <Download size={15} /> Install App
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* All socials */}
+            <div className="flex items-center gap-2 pt-1">
+              {(Object.keys(site.author.socials) as SocialHandle[]).map((handle) => (
                 <a
-                  href={site.social.githubRepo}
+                  key={handle}
+                  href={site.author.socials[handle]}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] transition-all duration-300 group/connect"
+                  aria-label={handle === "x" ? "X (Twitter)" : handle.charAt(0).toUpperCase() + handle.slice(1)}
+                  className="p-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] hover:border-[rgb(var(--color-primary))]/40 hover:shadow-[0_2px_10px_rgba(var(--color-primary),0.15)] transition-all duration-300"
                 >
-                  <Github size={15} className="transition-transform duration-300 group-hover/connect:rotate-12 group-hover/connect:scale-110" />
-                  <span className="leading-tight">
-                    Source Code
-                    <ArrowUpRight size={12} className="inline -mt-1 opacity-0 -translate-x-1 group-hover/connect:opacity-100 group-hover/connect:translate-x-0 transition-all duration-300" />
-                  </span>
+                  <SocialIcon handle={handle} />
                 </a>
-              </li>
-            </ul>
-            <div className="flex items-center justify-between pt-2">
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-[rgb(var(--text-secondary))]">
                   &copy; {new Date().getFullYear()} {site.author.name}
                 </span>
                 <Heart size={11} className="text-[rgb(var(--danger))] fill-[rgb(var(--danger))] animate-pulse" />
               </div>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                 className="p-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] hover:border-[rgb(var(--color-primary))]/40 hover:shadow-[0_2px_10px_rgba(var(--color-primary),0.15)] transition-all duration-300"
                 aria-label="Back to top"
               >
                 <ArrowUp size={14} />
-              </a>
+              </button>
             </div>
           </motion.div>
         </div>
       </footer>
     </div>
   );
+}
+
+function SocialIcon({ handle }: { handle: SocialHandle }) {
+  const cls = "w-[15px] h-[15px] flex items-center justify-center";
+  switch (handle) {
+    case "github":
+      return <Github className={cls} />;
+    case "linkedin":
+      return <Linkedin className={cls} />;
+    case "x":
+      return <Twitter className={cls} />;
+    case "youtube":
+      return <Youtube className={cls} />;
+    case "instagram":
+      return <Instagram className={cls} />;
+    case "facebook":
+      return <Facebook className={cls} />;
+    default:
+      return null;
+  }
 }

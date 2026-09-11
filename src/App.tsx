@@ -13,12 +13,14 @@ import SidebarScoreboard from './components/SidebarScoreboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import GlobalContextMenu from './components/GlobalContextMenu';
 import PageSkeleton from './components/PageSkeleton';
+import Onboarding from './components/Onboarding';
 
 // AdminPage + Guide/Journal pages are the largest bundles; load them lazily.
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const GuidePage = lazy(() => import('./pages/GuidePage'));
 const JournalIndexPage = lazy(() => import('./pages/JournalIndexPage'));
 const JournalArticlePage = lazy(() => import('./pages/JournalArticlePage'));
+const FaqPage = lazy(() => import('./pages/FaqPage'));
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -37,6 +39,14 @@ function AnimatedRoutes() {
         />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route
+          path="/faq"
+          element={
+            <Suspense fallback={<PageSkeleton variant="content" />}>
+              <FaqPage />
+            </Suspense>
+          }
+        />
         <Route
           path="/guide"
           element={
@@ -85,6 +95,7 @@ function App() {
         <SidebarScoreboard />
         <ScrollToTop />
         <GlobalContextMenu />
+        <Onboarding />
         <AnimatedRoutes />
         <Offline />
       </ErrorBoundary>

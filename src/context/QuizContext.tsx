@@ -7,12 +7,15 @@ const DUSTED_KEY = 'quiz-app-dusted';
 interface QuizContextType {
     visitedIds: number[];
     markAsVisited: (id: number) => void;
+    unmarkVisited: (id: number) => void;
     resetProgress: () => void;
     markedIds: number[];
     toggleMark: (id: number) => void;
     dustedIds: number[];
     dustVisited: () => void;
+    dustQuestion: (id: number) => void;
     restoreDusted: () => void;
+    restoreQuestion: (id: number) => void;
 }
 
 const QuizContext = createContext<QuizContextType | undefined>(undefined);
@@ -75,6 +78,10 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         });
     };
 
+    const unmarkVisited = (id: number) => {
+        setVisitedIds(prev => prev.filter(x => x !== id));
+    };
+
     const resetProgress = () => {
         setVisitedIds([]);
         localStorage.removeItem(STORAGE_KEY);
@@ -92,13 +99,21 @@ export function QuizProvider({ children }: { children: ReactNode }) {
         setDustedIds(prev => Array.from(new Set([...prev, ...visitedIds])));
     };
 
+    const dustQuestion = (id: number) => {
+        setDustedIds(prev => prev.includes(id) ? prev : [...prev, id]);
+    };
+
     const restoreDusted = () => {
         setDustedIds([]);
         localStorage.removeItem(DUSTED_KEY);
     };
 
+    const restoreQuestion = (id: number) => {
+        setDustedIds(prev => prev.filter(x => x !== id));
+    };
+
     return (
-        <QuizContext.Provider value={{ visitedIds, markAsVisited, resetProgress, markedIds, toggleMark, dustedIds, dustVisited, restoreDusted }}>
+        <QuizContext.Provider value={{ visitedIds, markAsVisited, unmarkVisited, resetProgress, markedIds, toggleMark, dustedIds, dustVisited, dustQuestion, restoreDusted, restoreQuestion }}>
             {children}
         </QuizContext.Provider>
     );

@@ -3,7 +3,7 @@ import {
     Home, Settings, Palette, Volume2, Download, RefreshCw,
     Maximize, Keyboard, Eye, Copy, Shuffle, Moon, Sun, Monitor,
     ChevronRight, CheckCircle2, Layout, MoreHorizontal,
-    BookOpen, Layers
+    BookOpen, Layers, Bookmark, Undo2, Sparkles
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData, downloadJson } from '../context/DataContext';
@@ -19,6 +19,20 @@ type MenuItem = {
     divider?: boolean;
     disabled?: boolean;
     active?: boolean;
+    header?: boolean;
+};
+
+// Cell-specific menu: shown when right-clicking a single question card on the grid.
+type CellMenuProps = {
+    questionId: number;
+    isVisited: boolean;
+    isMarked: boolean;
+    isDusted: boolean;
+    onOpen: () => void;
+    onToggleVisited: () => void;
+    onToggleMark: () => void;
+    onSnap: () => void;
+    onRestore: () => void;
 };
 
 type Props = {
@@ -30,10 +44,11 @@ type Props = {
     answerText?: string;
     onToggleAnswer?: () => void;
     onQuickPeek?: () => void;
+    cell?: CellMenuProps;
 };
 
 export default function ContextMenu({
-    x, y, onClose, pageType = 'general', questionText, answerText, onToggleAnswer, onQuickPeek
+    x, y, onClose, pageType = 'general', questionText, answerText, onToggleAnswer, onQuickPeek, cell
 }: Props) {
     const navigate = useNavigate();
     const location = useLocation();
@@ -101,6 +116,30 @@ export default function ContextMenu({
     ];
 
     const menuItems: MenuItem[] = [
+        ...(cell ? [
+            { label: `Question ${cell.questionId}`, header: true },
+            {
+                label: 'Open Question',
+                icon: <Eye size={16} />,
+                action: cell.onOpen,
+            },
+            {
+                label: cell.isVisited ? 'Unmark Visited' : 'Mark as Visited',
+                icon: <CheckCircle2 size={16} />,
+                action: cell.onToggleVisited,
+                active: cell.isVisited,
+            },
+            {
+                label: cell.isMarked ? 'Unmark for Review' : 'Mark for Review',
+                icon: <Bookmark size={16} />,
+                action: cell.onToggleMark,
+                active: cell.isMarked,
+            },
+            cell.isDusted
+                ? { label: 'Restore from Dust', icon: <Undo2 size={16} />, action: cell.onRestore }
+                : { label: 'Snap This Question', icon: <Sparkles size={16} />, action: cell.onSnap },
+            { divider: true },
+        ] : []),
         { label: 'Go to Home', icon: <Home size={16} />, action: () => navigate('/'), disabled: location.pathname === '/' },
         { label: 'User Guide', icon: <BookOpen size={16} />, action: () => navigate('/guide'), disabled: location.pathname === '/guide' },
         { label: 'Journal', icon: <Layers size={16} />, action: () => navigate('/journal'), disabled: location.pathname.startsWith('/journal') },
@@ -284,6 +323,11 @@ function RenderItems({
         <div className="flex flex-col py-1.5" onMouseEnter={clearHoverTimeout}>
             {items.map((item, idx) => {
                 if (item.divider) return <div key={idx} className="my-1.5 h-px bg-[var(--card-border)] mx-2" />;
+                if (item.header) return (
+                    <div key={idx} className="px-4 pt-1.5 pb-1 text-[10px] uppercase tracking-widest font-bold text-[rgb(var(--text-primary))] opacity-70">
+                        {item.label}
+                    </div>
+                );
 
                 const currentPath = [...parentPath, item.label || ''];
                 const isHovered = hoverPath[level] === (item.label || '');

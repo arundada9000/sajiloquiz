@@ -18,7 +18,7 @@ const entries: Entry[] = [
     // Grid Page
     { keys: ['Alt', 'Click'], description: 'Re-open a visited question', category: 'Grid Page' },
     { keys: ['Double-click'], description: 'Open a question from the grid', category: 'Grid Page', kind: 'gesture' },
-    { keys: ['Right-click'], description: 'Open quick actions menu', category: 'Grid Page', kind: 'gesture' },
+    { keys: ['Right-click'], description: 'Open per-question menu (mark/unmark visited, snap)', category: 'Grid Page', kind: 'gesture' },
     { keys: ['R'], description: 'Open a random unvisited question', category: 'Grid Page' },
     { keys: ['X'], description: 'Snap away all visited questions', category: 'Grid Page' },
 
@@ -29,6 +29,7 @@ const entries: Entry[] = [
     { keys: ['T'], description: 'Start / Pause Timer', category: 'Question Page' },
     { keys: ['R'], description: 'Reset Timer', category: 'Question Page' },
     { keys: ['M'], description: 'Mark / Unmark Question', category: 'Question Page' },
+    { keys: ['Read'], description: 'Speak the question aloud (also reads the answer once revealed)', category: 'Question Page' },
     { keys: ['+', ']'], description: 'Increase Text Size', category: 'Question Page' },
     { keys: ['-', '['], description: 'Decrease Text Size', category: 'Question Page' },
     { keys: ['0'], description: 'Reset Text Size', category: 'Question Page' },

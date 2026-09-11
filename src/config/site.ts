@@ -3,6 +3,14 @@
 // or repoint the app. Nothing else should hardcode these values at runtime.
 // ---------------------------------------------------------------------------
 
+export type SocialHandle =
+  | "github"
+  | "linkedin"
+  | "x"
+  | "youtube"
+  | "instagram"
+  | "facebook";
+
 export const site = {
   // Canonical base URL. Swap this when you host the app somewhere else.
   // No trailing slash. Example: "https://example.com"
@@ -22,9 +30,19 @@ export const site = {
 
   author: {
     name: "Arun Neupane",
-    url: "https://arunneupane.netlify.app",
+    url: "https://arunneupane.vercel.app",
     email: "arunneupane0000@gmail.com",
     phone: "+9779842977207",
+    // Personal link shown in the footer + structured data.
+    portfolio: "https://arunneupane.vercel.app",
+    socials: {
+      github: "https://github.com/arundada9000",
+      linkedin: "https://www.linkedin.com/in/arundada9000",
+      x: "https://x.com/arundada9000",
+      youtube: "https://www.youtube.com/@arundada9000",
+      instagram: "https://www.instagram.com/arundada9000",
+      facebook: "https://www.facebook.com/arundada9000",
+    } as Record<SocialHandle, string>,
   },
 
   social: {

@@ -1868,6 +1868,10 @@ function HelpGuide() {
               keyBind="Alt + Click"
               action="Re-open Visited Question"
             />
+            <ShortcutItem
+              keyBind="Right-click"
+              action="Per-question menu (mark/unmark, snap)"
+            />
             <ShortcutItem keyBind="R" action="Random Unvisited Question" />
             <ShortcutItem keyBind="X" action="Snap Away Visited Questions" />
           </div>
@@ -1884,6 +1888,7 @@ function HelpGuide() {
             <ShortcutItem keyBind="T" action="Start / Pause Timer" />
             <ShortcutItem keyBind="R" action="Reset Timer" />
             <ShortcutItem keyBind="M" action="Mark / Unmark Question" />
+            <ShortcutItem keyBind="Read" action="Speak Question Aloud" />
             <ShortcutItem keyBind="] or +" action="Increase Text Size" />
             <ShortcutItem keyBind="[ or -" action="Decrease Text Size" />
             <ShortcutItem keyBind="0" action="Reset Text Size" />

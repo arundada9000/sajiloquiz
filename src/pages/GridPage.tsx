@@ -8,12 +8,10 @@ import { sounds } from '../utils/sounds';
 import ShortcutsModal from '../components/ShortcutsModal';
 import { useDialog } from '../context/DialogContext';
 import SiteLayout from '../components/SiteLayout';
+import ContextMenu from '../components/ContextMenu';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
 
 // Type for the BeforeInstallPromptEvent (not available in default TS DOM lib)
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
-}
 
 type QuestionCardProps = {
   q: Question;
@@ -22,6 +20,7 @@ type QuestionCardProps = {
   isDusting: boolean;
   gridNumberFont: string;
   onNavigate: (id: number, isVisited: boolean, force?: boolean) => void;
+  onCellContextMenu: (q: Question, e: React.MouseEvent) => void;
 };
 
 // Module-scope QuestionCard so it is not re-created on every GridPage render.
@@ -32,6 +31,7 @@ const QuestionCard = memo(function QuestionCard({
   isDusting,
   gridNumberFont,
   onNavigate,
+  onCellContextMenu,
 }: QuestionCardProps) {
   return (
     <motion.div
@@ -58,6 +58,7 @@ const QuestionCard = memo(function QuestionCard({
             onNavigate(q.id, isVisited, e.altKey);
           }
         }}
+        onContextMenu={(e) => onCellContextMenu(q, e)}
         onMouseEnter={() => !isVisited && sounds.click()}
       >
         {isMarked && !isDusting && (
@@ -81,7 +82,7 @@ const QuestionCard = memo(function QuestionCard({
 
 export default function GridPage() {
     const { appConfig: config, allQuestions: questions, activeRounds, activeEnableRounds } = useData();
-    const { visitedIds, markedIds, resetProgress, dustedIds, dustVisited, restoreDusted } = useQuiz();
+    const { visitedIds, markedIds, resetProgress, dustedIds, dustVisited, restoreDusted, unmarkVisited, toggleMark, dustQuestion, restoreQuestion, markAsVisited } = useQuiz();
     const dialog = useDialog();
     const navigate = useNavigate();
 
@@ -101,6 +102,19 @@ export default function GridPage() {
     // Snap/dust animation state
     const [isSnapping, setIsSnapping] = useState(false);
     const snapTimer = useRef<number | null>(null);
+
+    // Per-card context menu (right-click a question card)
+    const [cellMenu, setCellMenu] = useState<{ q: Question; x: number; y: number } | null>(null);
+
+    // Open the context menu for a specific question card, right-clicked.
+    const openCellContextMenu = useCallback((q: Question, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        sounds.click();
+        setCellMenu({ q, x: e.clientX, y: e.clientY });
+        // Close the global context menu if one was open.
+        window.dispatchEvent(new Event('click'));
+    }, []);
 
     // Navigation handler passed to memoized cards; depends on navigate.
     const handleCardNavigate = useCallback((id: number, isVisited: boolean) => {
@@ -218,26 +232,7 @@ export default function GridPage() {
     }, [toggleFullscreen, isFullscreen, showShortcuts, handleRandom, handleSnap]);
 
     // --- PWA Install Logic ---
-    const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-
-    useEffect(() => {
-        const handler = (e: Event) => {
-            e.preventDefault();
-            setInstallPrompt(e as BeforeInstallPromptEvent);
-        };
-        window.addEventListener('beforeinstallprompt', handler);
-        return () => window.removeEventListener('beforeinstallprompt', handler);
-    }, []);
-
-    const handleInstall = () => {
-        if (!installPrompt) return;
-        installPrompt.prompt();
-        installPrompt.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-                setInstallPrompt(null);
-            }
-        });
-    };
+    const { canInstall, install: handleInstall } = useInstallPrompt();
 
     return (
         <SiteLayout>
@@ -362,6 +357,7 @@ export default function GridPage() {
                                                 isDusting={isSnapping && visitedIds.includes(q.id)}
                                                 gridNumberFont={config.fonts.gridNumber}
                                                 onNavigate={handleCardNavigate}
+                                                onCellContextMenu={openCellContextMenu}
                                             />
                                         ))}
                                     </div>
@@ -393,6 +389,7 @@ export default function GridPage() {
                                 isDusting={isSnapping && visitedIds.includes(q.id)}
                                 gridNumberFont={config.fonts.gridNumber}
                                 onNavigate={handleCardNavigate}
+                                onCellContextMenu={openCellContextMenu}
                             />
                         ))}
                     </motion.div>
@@ -458,7 +455,7 @@ export default function GridPage() {
                         <span className="sm:hidden">Reset</span>
                     </motion.button>
 
-                    {installPrompt && (
+                    {canInstall && (
                         <motion.button
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -477,6 +474,35 @@ export default function GridPage() {
                 isOpen={showShortcuts}
                 onClose={() => setShowShortcuts(false)}
             />
+
+            {/* Per-card context menu */}
+            {cellMenu && (
+                <ContextMenu
+                    x={cellMenu.x}
+                    y={cellMenu.y}
+                    onClose={() => setCellMenu(null)}
+                    pageType="grid"
+                    cell={{
+                        questionId: cellMenu.q.id,
+                        isVisited: visitedIds.includes(cellMenu.q.id),
+                        isMarked: markedIds.includes(cellMenu.q.id),
+                        isDusted: dustedIds.includes(cellMenu.q.id),
+                        onOpen: () => navigate(`/question/${cellMenu.q.id}`),
+                        onToggleVisited: () => {
+                            if (visitedIds.includes(cellMenu.q.id)) {
+                                unmarkVisited(cellMenu.q.id);
+                                dialog.toast('info', 'Unmarked', 'Question marked as not visited.');
+                            } else {
+                                markAsVisited(cellMenu.q.id);
+                                dialog.toast('success', 'Marked', 'Question marked as visited.');
+                            }
+                        },
+                        onToggleMark: () => toggleMark(cellMenu.q.id),
+                        onSnap: () => dustQuestion(cellMenu.q.id),
+                        onRestore: () => restoreQuestion(cellMenu.q.id),
+                    }}
+                />
+            )}
         </SiteLayout>
     );
 }

@@ -20,6 +20,8 @@ import {
   ChevronDown,
   Check,
   Bookmark,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useData } from "../context/DataContext";
 import { useQuiz } from "../context/QuizContext";
@@ -27,6 +29,7 @@ import { sounds } from "../utils/sounds";
 import ShortcutsModal from "../components/ShortcutsModal";
 import { setQuestionMenuData } from "../utils/contextMenuStore";
 import { useDialog } from "../context/DialogContext";
+import { speakText, cancelSpeech, isSpeechSupported } from "../utils/speech";
 
 export default function QuestionPage() {
   const { id } = useParams();
@@ -60,6 +63,9 @@ export default function QuestionPage() {
 
   // Quick Peek State
   const [showQuickPeek, setShowQuickPeek] = useState(false);
+
+  // Text-to-speech State
+  const [isSpeakingQ, setIsSpeakingQ] = useState(false);
 
   // Shortcuts Modal State
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -153,6 +159,35 @@ export default function QuestionPage() {
       setIsActive(false);
     }
   }, [config.timer.passDuration, config.timer.autoStartOnPass]);
+
+  // Read the question (and answer, if revealed) aloud using speech synthesis.
+  const handleReadAloud = useCallback(() => {
+    if (!question || !isSpeechSupported()) return;
+    if (isSpeakingQ) {
+      cancelSpeech();
+      setIsSpeakingQ(false);
+      return;
+    }
+    const text = showAnswer
+      ? `Question ${question.id}. ${question.text}. Answer. ${question.answer}`
+      : `Question ${question.id}. ${question.text}`;
+    sounds.click();
+    if (speakText(text, { onEnd: () => setIsSpeakingQ(false) })) {
+      setIsSpeakingQ(true);
+    }
+  }, [question, showAnswer, isSpeakingQ]);
+
+  // Stop speech when navigating away or changing question.
+  useEffect(() => {
+    cancelSpeech();
+    setIsSpeakingQ(false);
+  }, [questionId]);
+
+  useEffect(() => {
+    return () => {
+      cancelSpeech();
+    };
+  }, []);
 
   // Previous / next question navigation (used by swipe + context menu).
   const goAdjacent = useCallback(
@@ -381,6 +416,27 @@ export default function QuestionPage() {
                   Q
                 </span>
               </button>
+
+              {/* Read Aloud Button */}
+              {isSpeechSupported() && (
+                <button
+                  onClick={handleReadAloud}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all group ${
+                    isSpeakingQ
+                      ? "bg-[rgb(var(--color-primary))]/20 border-[rgb(var(--color-primary))]/50 text-[rgb(var(--color-primary))] anim-pulse"
+                      : "bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[var(--fill)]"
+                  }`}
+                  title={isSpeakingQ ? "Stop reading aloud" : "Read question aloud"}
+                  aria-label={
+                    isSpeakingQ ? "Stop reading question aloud" : "Read question aloud"
+                  }
+                >
+                  {isSpeakingQ ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                  <span className="hidden md:inline text-sm">
+                    {isSpeakingQ ? "Stop" : "Read"}
+                  </span>
+                </button>
+              )}
 
               {/* Mark/Bookmark Toggle Button */}
               <button

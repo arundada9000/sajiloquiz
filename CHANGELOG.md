@@ -22,6 +22,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
   "Snap" sound (X key or button).
 - Editable team names in the admin Teams tab.
 - Confirmation dialogs for deleting teams and awarding/penalizing team points.
+- Per-question context menu: right-click a grid card to open, mark/unmark
+  visited, mark for review, or snap/restore that single question.
+- Snap restore: snapped (dusted) questions can be brought back individually or
+  all at once from the grid.
+- Read aloud: speech synthesis reads the current question (and the answer once
+  revealed) from the question page.
+- Welcome onboarding: a nine-step Quick Tour introduces grid, rounds, scoring,
+  random/snap, themes, shortcuts, offline install and read-aloud. Auto-shows on
+  first visit and is always reachable from the footer.
+- PWA install button in the footer (shared install-prompt hook, reused by the
+  install button on the grid).
+- In-app FAQ page at /#/faq with accordion UI; FAQPage JSON-LD now generated
+  from the FAQ data module.
+- Footer now links the author's portfolio and all personal socials
+  (GitHub, LinkedIn, X, YouTube, Instagram, Facebook).
 
 ## [1.2.0] - 2026-08-31
 

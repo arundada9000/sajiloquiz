@@ -6,7 +6,7 @@ import SiteLayout from "../components/SiteLayout";
 const guideSections: Array<{ title: string; body: string }> = [
   {
     title: "Getting started",
-    body: "Sajilo Quiz is a live quiz presentation app that works completely offline once loaded. Open the Admin Panel to add your questions, rounds and teams, then project the question grid on the venue screen and reveal questions one by one while the sidebar keeps scores.",
+    body: "On your very first visit, the app opens a short Quick Tour that introduces the major features in nine steps. If you close it early or want to see it again, use the Quick Tour button in the footer. Sajilo Quiz is a live quiz presentation app that works completely offline once loaded. Open the Admin Panel to add your questions, rounds and teams, then project the question grid on the venue screen and reveal questions one by one while the sidebar keeps scores.",
   },
   {
     title: "Adding questions",
@@ -19,6 +19,18 @@ const guideSections: Array<{ title: string; body: string }> = [
   {
     title: "Running a live quiz",
     body: "Project the grid page on the big screen and press F for fullscreen. Click a numbered card to open its question. Press Space to reveal or hide the answer. The timer runs per question and can be started, paused or reset. Answered cards get a checkmark so you never ask the same question twice.",
+  },
+  {
+    title: "Per-question context menu",
+    body: "Right-click (or long-press) any question card on the grid to open a menu for just that question. From here you can open the question, mark it as visited or unmark it (useful when a question was marked as answered by mistake), add or remove a review bookmark, and snap just that one question to dust or restore it.",
+  },
+  {
+    title: "Reading questions aloud",
+    body: "Each question has a Read button next to the Mark button. Click it to have the browser speak the question aloud using speech synthesis - handy in classrooms or for players who prefer to hear the question. If the answer is already revealed, the read-out includes the answer too. Click Stop or tap Read again to interrupt. It works offline with no audio files.",
+  },
+  {
+    title: "Snap and restore",
+    body: "Press X to snap away all visited questions at once with a dust animation, leaving only the unvisited ones. The snapped cards disappear from the grid but are not deleted: use the Restore button to bring them back any time. Reset Progress clears visited marks and restores every snapped question in one go.",
   },
   {
     title: "Scoring and teams",
@@ -34,7 +46,11 @@ const guideSections: Array<{ title: string; body: string }> = [
   },
   {
     title: "Offline and install",
-    body: "The app is a PWA. After loading it once, it works with no internet at all, which matters for venues with unreliable connections. On desktop or mobile, use the browser's Install option (or the Install button on the grid page) to add it to your home screen for a native-app-like experience.",
+    body: "The app is a PWA. After loading it once, it works with no internet at all, which matters for venues with unreliable connections. On desktop or mobile, use the Install App button in the footer (or the Install button on the grid page) to add it to your home screen for a native-app-like experience. Questions, images, sounds and scores all live in your browser.",
+  },
+  {
+    title: "Where to get help",
+    body: "The in-app FAQ at /#/faq answers the most common questions about offline use, adding questions, scoring, installing and privacy. You can open it from the footer anytime.",
   },
 ];
 
@@ -51,6 +67,7 @@ const shortcutGroups: Array<{ category: string; items: Array<{ keys: string; act
     category: "Grid page",
     items: [
       { keys: "Alt + Click", action: "Re-open a visited question" },
+      { keys: "Right-click", action: "Open the per-question menu (mark/unmark visited, snap)" },
       { keys: "R", action: "Open a random unvisited question" },
       { keys: "X", action: "Snap away all visited questions" },
     ],
@@ -143,7 +160,12 @@ export default function GuidePage() {
               <section id="shortcuts">
                 <h2 className="text-lg font-bold mb-2">Still have questions</h2>
                 <p className="text-[rgb(var(--text-secondary))]">
-                  Check the journal articles for{" "}
+                  The{" "}
+                  <Link to="/faq" className="text-[rgb(var(--color-primary))] hover:underline">
+                    FAQ
+                  </Link>{" "}
+                  covers the most common questions. For deeper reading, the
+                  journal has articles on{" "}
                   <Link to="/journal/managing-question-batches" className="text-[rgb(var(--color-primary))] hover:underline">
                     question batches
                   </Link>
