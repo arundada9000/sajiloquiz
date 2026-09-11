@@ -14,7 +14,7 @@ const guideSections: Array<{ title: string; body: string }> = [
   },
   {
     title: "Organizing with batches",
-    body: "Question batches let you keep several question sets in one place: a general round, a science round, a finals set and so on. Create a batch, name it, and it becomes the active set. Every question you add goes into the active batch, and the grid shows only the active batch. Switch batches any time, or export one batch to share it with someone else.",
+    body: "Question batches let you keep several question sets in one place: a general round, a science round, a finals set and so on. The app starts with your company quiz plus three ready-made sample batches (Rapid-Fire Quickies, Grand Quiz Extravaganza and Deep-Dive Thinkers) that show off different round styles and question lengths. Delete any sample batch and it stays deleted. Create a batch, name it, and it becomes the active set. Every question you add goes into the active batch, and the grid shows only the active batch. Switch batches any time, or export one batch to share it with someone else.",
   },
   {
     title: "Running a live quiz",

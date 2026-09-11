@@ -49,6 +49,7 @@ A free, offline-first quiz presentation app for running live events. Build quest
 - **Per-question context menu:** right-click any grid card to open a menu for that question: open it, mark or unmark it as visited, mark it for review, or snap/restore just that one question.
 - **Mark for review:** press M on any question to bookmark it (e.g. ambiguity). Marked questions get an amber badge on the grid.
 - **Rounds:** group questions into rounds (Rapid Fire, General, etc.) or use a standard grid.
+- **Sample batches:** ships with three ready-made quiz sets (Rapid-Fire Quickies, Grand Quiz Extravaganza and Deep-Dive Thinkers) alongside your company quiz. Delete them any time, and they stay deleted.
 - **Multimedia:** embed images (auto-compressed to 800px JPEG) and audio (auto-converted to mono 16 kHz WAV).
 - **Team scoreboard:** the sidebar tracks team scores as you call answers.
 - **SEO / AEO / Geo ready:** structured data, Open Graph, Twitter cards and geo metadata driven by one config file.

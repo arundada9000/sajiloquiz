@@ -37,6 +37,10 @@ project adheres to [Semantic Versioning](https://semver.org/).
   from the FAQ data module.
 - Footer now links the author's portfolio and all personal socials
   (GitHub, LinkedIn, X, YouTube, Instagram, Facebook).
+- Sample question batches: new installs start with the company quiz plus three
+  ready-made sets (Rapid-Fire Quickies, Grand Quiz Extravaganza and Deep-Dive
+  Thinkers) that show off different round styles and question lengths. They are
+  seeded once - hosts can delete them and they stay deleted.
 
 ### Fixed
 - PWA install prompt not appearing in development: the service worker is now

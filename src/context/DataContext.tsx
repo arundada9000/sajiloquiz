@@ -9,6 +9,7 @@ import {
 } from "react";
 import { config as defaultConfig } from "../data/config";
 import { questions as defaultQuestions } from "../data/questions";
+import { sampleBatches } from "../data/sampleBatches";
 import { setSoundPreferences } from "../utils/sounds";
 import { applyTheme, setupThemeListener } from "../utils/theme";
 import { idbGet, idbSet, idbDelete, idbClear } from "../utils/idb";
@@ -146,6 +147,7 @@ const STORAGE_KEY_TEAMS = "quiz_master_teams_v1";
 const STORAGE_KEY_ACTIVE_TEAM = "quiz_master_active_team_v1";
 const STORAGE_KEY_BATCHES = "quiz_master_batches_v1";
 const STORAGE_KEY_ACTIVE_BATCH = "quiz_master_active_batch_v1";
+const STORAGE_KEY_SAMPLES_SEEDED = "quiz_master_samples_seeded_v1";
 
 // Validate that parsed data looks like an AppConfig before trusting it.
 function isAppConfig(value: unknown): value is AppConfig {
@@ -244,6 +246,28 @@ function isQuestionBatchArray(value: unknown): value is QuestionBatch[] {
         Array.isArray((b as QuestionBatch).questions),
     )
   );
+}
+
+// Deep-clone a batch so edits to a seeded batch never mutate the shared
+// sampleBatches module data.
+function cloneBatch(batch: QuestionBatch): QuestionBatch {
+  return { ...batch, questions: batch.questions.map((q) => ({ ...q })) };
+}
+
+// Build the out-of-the-box batch set: the host's company quiz plus the
+// ready-made sample batches.
+function buildInitialBatches(companyQuestions: Question[]): QuestionBatch[] {
+  return [companyQuizBatch(companyQuestions), ...sampleBatches.map(cloneBatch)];
+}
+
+// The host's own quiz, seeded as the first and initially active batch.
+function companyQuizBatch(companyQuestions: Question[]): QuestionBatch {
+  return {
+    id: Date.now().toString(),
+    name: "SajiloDigital Company Quiz",
+    createdAt: new Date().toISOString(),
+    questions: companyQuestions.map((q) => ({ ...q })),
+  };
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -365,20 +389,57 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Migration: if batches are empty but flat questions exist, create a default batch
+  // Migration: seed the initial batch set from flat questions on legacy
+  // installs, make the auto-created "Default" batch carry the company quiz
+  // name, and add the ready-made sample batches exactly once. The seeded flag
+  // keeps the samples from coming back after the host deletes them.
   useEffect(() => {
-    if (isReady && batches.length === 0 && flatQuestions.length > 0) {
-      const defaultBatch: QuestionBatch = {
-        id: Date.now().toString(),
-        name: "Default",
-        createdAt: new Date().toISOString(),
-        questions: [...flatQuestions],
-      };
-      setBatches([defaultBatch]);
-      setActiveBatchIdState(defaultBatch.id);
-      void idbSet(STORAGE_KEY_BATCHES, JSON.stringify([defaultBatch]));
-      void idbSet(STORAGE_KEY_ACTIVE_BATCH, defaultBatch.id);
-    }
+    if (!isReady) return;
+
+    const seedSamples = async () => {
+      try {
+        const seededFlag = await idbGet(STORAGE_KEY_SAMPLES_SEEDED);
+        if (seededFlag) return;
+
+        let next = batches;
+        let nextActiveId = activeBatchId;
+
+        if (batches.length === 0 && flatQuestions.length > 0) {
+          const initial = buildInitialBatches(flatQuestions);
+          next = initial;
+          nextActiveId = initial[0].id;
+        } else if (batches.length > 0) {
+          const existingIds = new Set(batches.map((b) => b.id));
+          const missing = sampleBatches
+            .map(cloneBatch)
+            .filter((s) => !existingIds.has(s.id));
+          next = [
+            ...batches.map((b) =>
+              b.name === "Default" ? { ...b, name: "SajiloDigital Company Quiz" } : b,
+            ),
+            ...missing,
+          ];
+          nextActiveId = next.some((b) => b.id === activeBatchId)
+            ? activeBatchId
+            : next[0]?.id ?? null;
+        }
+
+        if (next !== batches) {
+          setBatches(next);
+          void idbSet(STORAGE_KEY_BATCHES, JSON.stringify(next));
+        }
+        if (nextActiveId !== activeBatchId) {
+          setActiveBatchIdState(nextActiveId);
+          if (nextActiveId) void idbSet(STORAGE_KEY_ACTIVE_BATCH, nextActiveId);
+          else void idbDelete(STORAGE_KEY_ACTIVE_BATCH);
+        }
+        void idbSet(STORAGE_KEY_SAMPLES_SEEDED, "1");
+      } catch (error) {
+        console.error("Failed to seed sample batches:", error);
+      }
+    };
+
+    void seedSamples();
   }, [isReady]); // Run once hydration completes
 
   // Derived: when batches exist, allQuestions reads from the active batch.
@@ -582,16 +643,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const resetQuestions = (): boolean => {
     setAppConfig((prev) => ({ ...prev, rounds: defaultConfig.rounds, enableRounds: defaultConfig.enableRounds }));
     setFlatQuestions([]);
-    setBatches([]);
-    setActiveBatchIdState(null);
-    const defaultBatch: QuestionBatch = {
-      id: Date.now().toString(),
-      name: "Default",
-      createdAt: new Date().toISOString(),
-      questions: [...defaultQuestions],
-    };
-    setBatches([defaultBatch]);
-    setActiveBatchIdState(defaultBatch.id);
+    const initial = buildInitialBatches(defaultQuestions);
+    setBatches(initial);
+    setActiveBatchIdState(initial[0].id);
+    void idbSet(STORAGE_KEY_SAMPLES_SEEDED, "1");
     return true;
   };
 

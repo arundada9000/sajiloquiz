@@ -1,0 +1,116 @@
+import type { QuestionBatch } from "../context/DataContext";
+
+// Ready-made demo batches that ship with the app.
+// They seeded once on first launch; hosts can delete or edit them like any
+// other batch without the app re-adding them.
+export const sampleBatches: QuestionBatch[] = [
+  {
+    id: "sample-rapid-fire",
+    name: "Rapid-Fire Quickies",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    enableRounds: false,
+    questions: [
+      { id: 1, text: "How many colours are in a rainbow?", answer: "Seven" },
+      { id: 2, text: "Which planet is known as the Red Planet?", answer: "Mars" },
+      { id: 3, text: "What is the fastest land animal?", answer: "Cheetah" },
+      { id: 4, text: "How many sides does a triangle have?", answer: "Three" },
+      { id: 5, text: "What is the capital of Nepal?", answer: "Kathmandu" },
+      { id: 6, text: "How many players are in a cricket team?", answer: "Eleven" },
+      { id: 7, text: "What gas do humans need to breathe?", answer: "Oxygen" },
+      { id: 8, text: "Which is the largest ocean on Earth?", answer: "Pacific Ocean" },
+      { id: 9, text: "What do bees produce?", answer: "Honey" },
+      { id: 10, text: "Which is the tallest mountain in the world?", answer: "Mount Everest" },
+    ],
+  },
+  {
+    id: "sample-grand-finale",
+    name: "Grand Quiz Extravaganza",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    enableRounds: true,
+    rounds: [
+      { title: "Rapid Fire", range: [1, 10] },
+      { title: "General Knowledge", range: [11, 20] },
+      { title: "Grand Finale", range: [21, 30] },
+    ],
+    questions: [
+      { id: 1, text: "What is the currency of Japan?", answer: "Yen" },
+      { id: 2, text: "Who wrote 'Romeo and Juliet'?", answer: "William Shakespeare" },
+      { id: 3, text: "How many continents are there in the world?", answer: "Seven" },
+      { id: 4, text: "What gas makes up most of the Earth's atmosphere?", answer: "Nitrogen" },
+      { id: 5, text: "Which instrument has 88 keys?", answer: "Piano" },
+      { id: 6, text: "What is the smallest prime number?", answer: "Two" },
+      { id: 7, text: "Which country is famous for the Great Barrier Reef?", answer: "Australia" },
+      { id: 8, text: "How many bones are in the adult human body?", answer: "206" },
+      { id: 9, text: "What do you call a baby frog?", answer: "Tadpole" },
+      { id: 10, text: "Which scientist discovered gravity when an apple fell?", answer: "Isaac Newton" },
+      { id: 11, text: "What is the longest river in the world?", answer: "The Nile" },
+      { id: 12, text: "Which is the smallest country in the world?", answer: "Vatican City" },
+      { id: 13, text: "What is the hardest natural substance on Earth?", answer: "Diamond" },
+      { id: 14, text: "Who painted the Mona Lisa?", answer: "Leonardo da Vinci" },
+      { id: 15, text: "What is the powerhouse of the cell?", answer: "Mitochondria" },
+      { id: 16, text: "Which planet is known as the Morning Star?", answer: "Venus" },
+      { id: 17, text: "What is the chemical symbol for gold?", answer: "Au" },
+      { id: 18, text: "Which ocean is the deepest?", answer: "Pacific Ocean" },
+      { id: 19, text: "What do you call a group of lions?", answer: "A pride" },
+      { id: 20, text: "Which is the largest organ of the human body?", answer: "Skin" },
+      { id: 21, text: "What is the study of weather called?", answer: "Meteorology" },
+      { id: 22, text: "Who developed the theory of general relativity?", answer: "Albert Einstein" },
+      { id: 23, text: "What is the tallest building in the world?", answer: "Burj Khalifa" },
+      { id: 24, text: "Which element has the atomic number 1?", answer: "Hydrogen" },
+      { id: 25, text: "What is the capital city of Australia?", answer: "Canberra" },
+      { id: 26, text: "How many heart chambers does the human heart have?", answer: "Four" },
+      { id: 27, text: "Which planet has the most moons?", answer: "Saturn" },
+      { id: 28, text: "What is the main ingredient in bread?", answer: "Flour" },
+      { id: 29, text: "In which year did World War II end?", answer: "1945" },
+      { id: 30, text: "Who is known as the Father of Computers?", answer: "Charles Babbage" },
+    ],
+  },
+  {
+    id: "sample-deep-dive",
+    name: "Deep-Dive Thinkers",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    enableRounds: false,
+    questions: [
+      {
+        id: 1,
+        text: "Explain how a rainbow is formed, naming the two processes light undergoes inside a raindrop.",
+        answer: "Sunlight enters a raindrop, refracts (bends), reflects off the back of the drop, then refracts again as it leaves, splitting white light into its colours.",
+      },
+      {
+        id: 2,
+        text: "Describe the difference between renewable and non-renewable energy, and give one example of each with a short explanation.",
+        answer: "Renewable energy comes from sources that replenish naturally, like solar or wind. Non-renewable sources such as coal or oil are finite and take millions of years to form.",
+      },
+      {
+        id: 3,
+        text: "What is the water cycle, and name the four main stages it involves in order.",
+        answer: "The water cycle is the continuous movement of water on Earth. Its stages are evaporation, condensation, precipitation, and collection.",
+      },
+      {
+        id: 4,
+        text: "Why do leaves of green plants appear green, and what role does the green pigment play in photosynthesis?",
+        answer: "Leaves appear green because chlorophyll reflects green wavelengths and absorbs red and blue ones. Chlorophyll captures that light energy to power photosynthesis.",
+      },
+      {
+        id: 5,
+        text: "Compare a compound and a mixture, explaining how their properties differ and giving an example of each.",
+        answer: "A compound is formed when elements chemically combine, like salt (sodium + chlorine), and its properties differ from its elements. A mixture, like sand and water, keeps each component's properties and separates physically.",
+      },
+      {
+        id: 6,
+        text: "Describe what happens to the human body when it exercises vigorously, mentioning at least three changes.",
+        answer: "Heart rate rises to pump more oxygen, breathing quickens to take in more air, muscles use stored glucose for energy, and the body sweats to cool down.",
+      },
+      {
+        id: 7,
+        text: "What is the difference between weather and climate, and why are the two words often confused?",
+        answer: "Weather is the short-term state of the atmosphere in one place, like today's rain. Climate is the long-term average of weather over decades. They get confused because both describe atmospheric conditions.",
+      },
+      {
+        id: 8,
+        text: "Explain how a simple electromagnet works and name one everyday device that uses it.",
+        answer: "Wrapping a wire around an iron core and passing an electric current through it creates a magnetic field. When the current stops, the magnetism fades. Doorbells and electric cranes use them.",
+      },
+    ],
+  },
+];

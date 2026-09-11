@@ -115,9 +115,15 @@ export const journalArticles: JournalArticle[] = [
         ],
       },
       {
+        heading: "The out-of-the-box set",
+        body: [
+          "First launch creates your company quiz and three ready-made sample batches: Rapid-Fire Quickies (ten short, no rounds), Grand Quiz Extravaganza (thirty questions across three rounds) and Deep-Dive Thinkers (longer, explain-the-why questions). Keep them as templates or delete them - the app seeds them once and never brings a deleted batch back.",
+        ],
+      },
+      {
         heading: "Creating a batch",
         body: [
-          "Open Admin, then Questions. Type a name in the New batch box and press Enter. The batch is created and becomes active, so new questions land inside it. Existing questions from an older version of the app are moved into a batch called Default automatically on first launch.",
+          "Open Admin, then Questions. Type a name in the New batch box and press Enter. The batch is created and becomes active, so new questions land inside it. Existing questions from an older version of the app are moved into your company quiz batch automatically on first launch.",
         ],
       },
       {

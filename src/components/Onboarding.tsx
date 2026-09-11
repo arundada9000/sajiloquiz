@@ -96,7 +96,7 @@ const steps: OnboardingStep[] = [
     points: [
       "Eleven built-in themes plus a custom palette",
       "Choose your own fonts and sizes",
-      "Default question data with over 200 ready questions",
+      "Ready-made sample quiz batches to try out or delete",
     ],
   },
   {
