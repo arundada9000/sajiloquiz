@@ -38,7 +38,7 @@ export default function ContextMenu({
     const navigate = useNavigate();
     const location = useLocation();
     const { appConfig, updateConfig, allQuestions } = useData();
-    const { visitedIds } = useQuiz();
+    const { visitedIds, dustedIds } = useQuiz();
     const menuRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ x, y });
     const [submenuSide, setSubmenuSide] = useState<'right' | 'left'>('right');
@@ -127,7 +127,7 @@ export default function ContextMenu({
                     label: 'Random Question (unvisited)',
                     icon: <Shuffle size={14} />,
                     action: () => {
-                        const unvisited = allQuestions.filter(q => !visitedIds.includes(q.id));
+                        const unvisited = allQuestions.filter(q => !visitedIds.includes(q.id) && !dustedIds.includes(q.id));
                         if (unvisited.length === 0) return;
                         const randomQ = unvisited[Math.floor(Math.random() * unvisited.length)];
                         navigate(`/question/${randomQ.id}`);

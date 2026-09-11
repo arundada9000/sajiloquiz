@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useData, Question } from '../context/DataContext';
 import { useQuiz } from '../context/QuizContext';
-import { Trash2, Trophy, Target, ListChecks, Settings, Download, Maximize, Minimize, Check, Shuffle, Sparkles, Bookmark } from 'lucide-react';
+import { Trash2, Trophy, Target, ListChecks, Settings, Download, Maximize, Minimize, Check, Shuffle, Sparkles, Bookmark, Undo2 } from 'lucide-react';
 import { sounds } from '../utils/sounds';
 import ShortcutsModal from '../components/ShortcutsModal';
 import { useDialog } from '../context/DialogContext';
@@ -81,14 +81,16 @@ const QuestionCard = memo(function QuestionCard({
 
 export default function GridPage() {
     const { appConfig: config, allQuestions: questions, activeRounds, activeEnableRounds } = useData();
-    const { visitedIds, markedIds, resetProgress } = useQuiz();
+    const { visitedIds, markedIds, resetProgress, dustedIds, dustVisited, restoreDusted } = useQuiz();
     const dialog = useDialog();
     const navigate = useNavigate();
 
-    const totalQuestions = questions.length;
-    const completedCount = visitedIds.length;
+    // Questions still visible on the grid (dusted ones are gone until restored).
+    const visibleQuestions = questions.filter(q => !dustedIds.includes(q.id));
+    const totalQuestions = visibleQuestions.length;
+    const completedCount = visibleQuestions.filter(q => visitedIds.includes(q.id)).length;
     const remainingCount = totalQuestions - completedCount;
-    const unvisited = questions.filter(q => !visitedIds.includes(q.id));
+    const unvisited = visibleQuestions.filter(q => !visitedIds.includes(q.id));
 
     // Fullscreen State
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -107,7 +109,8 @@ export default function GridPage() {
         navigate(`/question/${id}`);
     }, [navigate]);
 
-    // Snap: play a dust animation over visited cards, then clear progress.
+    // Snap: play a dust animation over visited cards, then dust them out of the
+    // grid so only unvisited questions remain (until restored).
     const handleSnap = useCallback(async () => {
         if (isSnapping) return;
         if (completedCount === 0) {
@@ -116,7 +119,7 @@ export default function GridPage() {
         }
         const ok = await dialog.confirm({
             title: 'The Snap',
-            message: `Dust away ${completedCount} visited question${completedCount === 1 ? '' : 's'}? Only the unvisited questions will remain.`,
+            message: `Dust away ${completedCount} visited question${completedCount === 1 ? '' : 's'}? Only the unvisited questions will remain. You can restore them later.`,
             confirmLabel: 'Snap',
             cancelLabel: 'Keep Them',
             danger: true,
@@ -126,11 +129,11 @@ export default function GridPage() {
         setIsSnapping(true);
         if (snapTimer.current) window.clearTimeout(snapTimer.current);
         snapTimer.current = window.setTimeout(() => {
-            resetProgress();
+            dustVisited();
             setIsSnapping(false);
-            dialog.toast('success', 'Perfectly balanced', 'Visited questions returned to dust. Unvisited questions remain.');
+            dialog.toast('success', 'Perfectly balanced', 'Visited questions returned to dust. Only unvisited questions remain.');
         }, 1200);
-    }, [isSnapping, completedCount, dialog, resetProgress]);
+    }, [isSnapping, completedCount, dialog, dustVisited]);
 
     // Clean up snap timer on unmount
     useEffect(() => {
@@ -332,7 +335,7 @@ export default function GridPage() {
                 {activeEnableRounds ? (
                     <div className="w-full max-w-7xl flex flex-col gap-12">
                         {activeRounds.map((round, rIdx) => {
-                            const roundQuestions = questions.filter(q => q.id >= round.range[0] && q.id <= round.range[1]);
+                            const roundQuestions = visibleQuestions.filter(q => q.id >= round.range[0] && q.id <= round.range[1]);
                             if (roundQuestions.length === 0) return null;
 
                             return (
@@ -381,7 +384,7 @@ export default function GridPage() {
                             }
                         }}
                     >
-                        {questions.map((q) => (
+                        {visibleQuestions.map((q) => (
                             <QuestionCard
                                 key={q.id}
                                 q={q}
@@ -419,12 +422,29 @@ export default function GridPage() {
                         <span className="hidden sm:inline">Snap</span>
                         <span className="sm:hidden">Snap</span>
                     </motion.button>
+                    {dustedIds.length > 0 && (
+                        <motion.button
+                            onClick={() => {
+                                sounds.click();
+                                restoreDusted();
+                                dialog.toast('info', 'Restored from dust', `${dustedIds.length} snapped question${dustedIds.length === 1 ? '' : 's'} brought back.`);
+                            }}
+                            className="btn-secondary flex items-center gap-2 text-sm px-3 py-2"
+                            title="Bring snapped questions back"
+                        >
+                            <Undo2 size={16} />
+                            <span className="hidden sm:inline">Restore</span>
+                            <span className="sm:hidden">Restore</span>
+                        </motion.button>
+                    )}
                     <motion.button
                         onClick={async () => {
                             sounds.select();
                             const ok = await dialog.confirm({
                                 title: 'Reset Progress',
-                                message: 'Clear the visited marks on all question cards?',
+                                message: dustedIds.length > 0
+                                    ? 'Clear the visited marks on all question cards and bring back snapped questions?'
+                                    : 'Clear the visited marks on all question cards?',
                                 confirmLabel: 'Reset',
                                 cancelLabel: 'Keep Marks',
                                 danger: true,

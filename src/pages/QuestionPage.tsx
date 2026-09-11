@@ -45,7 +45,7 @@ export default function QuestionPage() {
   }
 
   const [showAnswer, setShowAnswer] = useState(false);
-  const { markAsVisited, visitedIds, markedIds, toggleMark } = useQuiz();
+  const { markAsVisited, visitedIds, markedIds, toggleMark, dustedIds } = useQuiz();
   const isMarked = markedIds.includes(questionId);
 
   // Dynamic Font Scaling
@@ -686,7 +686,7 @@ export default function QuestionPage() {
 
               {/* Questions Grid */}
               <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 md:gap-3">
-                {questions.map((q) => {
+                {questions.filter(q => !dustedIds.includes(q.id)).map((q) => {
                   const isVisited = visitedIds.includes(q.id);
                   const isCurrent = q.id === questionId;
                   const isMarked = markedIds.includes(q.id);
