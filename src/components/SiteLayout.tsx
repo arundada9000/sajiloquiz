@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { site } from "../config/site";
 import { useData } from "../context/DataContext";
-import { useInstallPrompt } from "../hooks/useInstallPrompt";
+import { useInstallPrompt, isIosSafari } from "../hooks/useInstallPrompt";
 import { useDialog } from "../context/DialogContext";
 import type { SocialHandle } from "../config/site";
 
@@ -104,13 +104,25 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
   const handleInstallClick = () => {
     if (canInstall) {
       install();
+      return;
+    }
+    if (appInstalled) {
+      dialog.toast(
+        "info",
+        "Install Sajilo Quiz",
+        "Sajilo Quiz is already installed on this device.",
+      );
+    } else if (isIosSafari()) {
+      dialog.toast(
+        "info",
+        "Install Sajilo Quiz",
+        "Tap the Share button in Safari, then choose Add to Home Screen.",
+      );
     } else {
       dialog.toast(
         "info",
         "Install Sajilo Quiz",
-        appInstalled
-          ? "Sajilo Quiz is already installed on this device."
-          : "Use your browser menu - Install App / Add to Home Screen.",
+        "Installation is ready on Chrome, Edge or the installed app. Your browser did not offer it on this page - reload once to trigger the install prompt, or use the install icon in the address bar.",
       );
     }
   };

@@ -139,6 +139,9 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["icons/logo-favicon.png", "icons/logo-192.png", "icons/logo-512.png", "og-image.png", "robots.txt", "sitemap.xml"],
+      // Register the service worker in dev too, otherwise localhost:5173 is
+      // never installable (Chrome requires a SW to offer install).
+      devOptions: { enabled: true },
       manifest: {
         id: `${site.url}/`,
         name: site.name,
