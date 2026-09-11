@@ -52,6 +52,7 @@ let soundPreferences = {
   warning: true,
   pass: true,
   fullscreen: true,
+  snap: true,
 };
 
 export type SoundPreferences = typeof soundPreferences;
@@ -93,62 +94,93 @@ const shouldPlay = (soundType: keyof SoundPreferences) => {
   return soundPreferences.masterEnabled && soundPreferences[soundType];
 };
 
+// Haptic feedback via navigator.vibrate (mobile only). Design fallbacks to
+// non-pattern form for browsers that only support a single duration.
+function vibrate(pattern: number | number[]) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch {
+      /* haptics unsupported, ignore */
+    }
+  }
+}
+
 export const sounds = {
   click: () => {
     if (!shouldPlay("click")) return;
+    vibrate(10);
     playTone(800, "sine", 0.1);
   },
   select: () => {
     if (!shouldPlay("select")) return;
+    vibrate(15);
     playTone(400, "sine", 0.15);
     playTone(600, "sine", 0.15, 0.05);
   },
   reveal: () => {
     if (!shouldPlay("reveal")) return;
+    vibrate(25);
     playTone(523.25, "triangle", 0.6);
     playTone(659.25, "triangle", 0.6, 0.1);
     playTone(783.99, "triangle", 0.8, 0.2);
   },
   back: () => {
     if (!shouldPlay("back")) return;
+    vibrate(10);
     playTone(400, "sine", 0.2);
     playTone(300, "sine", 0.3, 0.1);
   },
   timerTick: () => {
     if (!shouldPlay("timerTick")) return;
+    vibrate(5);
     playTone(1000, "sine", 0.05);
   },
   timerEnd: () => {
     if (!shouldPlay("timerEnd")) return;
+    vibrate([50, 30, 50]);
     playTone(880, "square", 0.5);
     playTone(880, "square", 0.5, 0.6);
     playTone(880, "square", 0.5, 1.2);
   },
   success: () => {
     if (!shouldPlay("success")) return;
+    vibrate(20);
     playTone(523.25, "sine", 0.2);
     playTone(659.25, "sine", 0.2, 0.1);
     playTone(783.99, "sine", 0.4, 0.2);
   },
   error: () => {
     if (!shouldPlay("error")) return;
+    vibrate([30, 30, 30]);
     playTone(200, "sawtooth", 0.3);
     playTone(180, "sawtooth", 0.3, 0.15);
   },
   warning: () => {
     if (!shouldPlay("warning")) return;
+    vibrate(20);
     playTone(600, "sine", 0.15);
     playTone(600, "sine", 0.15, 0.25);
   },
   pass: () => {
     if (!shouldPlay("pass")) return;
+    vibrate(15);
     playTone(800, "sine", 0.1);
     playTone(600, "sine", 0.1, 0.05);
     playTone(400, "sine", 0.1, 0.1);
   },
   fullscreen: () => {
     if (!shouldPlay("fullscreen")) return;
+    vibrate(10);
     playTone(400, "sine", 0.2);
     playTone(600, "sine", 0.3, 0.1);
+  },
+  snap: () => {
+    if (!shouldPlay("snap")) return;
+    vibrate([30, 20, 60]);
+    // A quick two-part "snap": a sharp high click followed by a low thud.
+    playTone(1400, "square", 0.06);
+    playTone(200, "sine", 0.25, 0.03);
+    playTone(90, "sine", 0.5, 0.06);
   },
 };

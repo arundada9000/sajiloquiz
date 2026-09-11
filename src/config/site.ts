@@ -62,10 +62,4 @@ export const pwaShortcuts: Array<{
     description: "Manage questions, rounds and teams",
     url: "/#/admin",
   },
-  {
-    name: "Leaderboard",
-    short_name: "Scores",
-    description: "Open the team scoreboard",
-    url: "/#/",
-  },
 ];

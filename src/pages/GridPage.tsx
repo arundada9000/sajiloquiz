@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useData, Question } from '../context/DataContext';
 import { useQuiz } from '../context/QuizContext';
-import { Trash2, Trophy, Target, ListChecks, Settings, Download, Maximize, Minimize } from 'lucide-react';
+import { Trash2, Trophy, Target, ListChecks, Settings, Download, Maximize, Minimize, Check, Shuffle, Sparkles, Bookmark } from 'lucide-react';
 import { sounds } from '../utils/sounds';
 import ShortcutsModal from '../components/ShortcutsModal';
-import ContextMenu from '../components/ContextMenu';
-import { site } from '../config/site';
+import { useDialog } from '../context/DialogContext';
+import SiteLayout from '../components/SiteLayout';
 
 // Type for the BeforeInstallPromptEvent (not available in default TS DOM lib)
 interface BeforeInstallPromptEvent extends Event {
@@ -18,6 +18,8 @@ interface BeforeInstallPromptEvent extends Event {
 type QuestionCardProps = {
   q: Question;
   isVisited: boolean;
+  isMarked: boolean;
+  isDusting: boolean;
   gridNumberFont: string;
   onNavigate: (id: number, isVisited: boolean, force?: boolean) => void;
 };
@@ -26,6 +28,8 @@ type QuestionCardProps = {
 const QuestionCard = memo(function QuestionCard({
   q,
   isVisited,
+  isMarked,
+  isDusting,
   gridNumberFont,
   onNavigate,
 }: QuestionCardProps) {
@@ -38,11 +42,13 @@ const QuestionCard = memo(function QuestionCard({
         type="button"
         aria-label={`Open question ${q.id}${isVisited ? ' (already answered, Alt+Click to reopen)' : ''}`}
         className={`
-                aspect-square flex items-center justify-center rounded-[14px] font-bold w-full
+                aspect-square flex items-center justify-center rounded-xl font-bold w-full
                 transition-all duration-300 border relative overflow-hidden cursor-pointer
-                ${isVisited
-                    ? 'cell-visited opacity-80 hover:opacity-100'
-                    : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-primary))] backdrop-blur-md hover:bg-[var(--fill)] hover:border-[rgb(var(--color-primary))] hover:shadow-[0_0_20px_rgba(var(--color-primary),0.35)] hover:scale-105 shadow-sm'
+                ${isDusting
+                    ? 'cell-dusting'
+                    : isVisited
+                        ? 'cell-visited'
+                        : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-primary))] backdrop-blur-md hover:bg-[var(--fill)] hover:border-[rgb(var(--color-primary))] hover:shadow-[0_0_20px_rgba(var(--color-primary),0.35)] hover:scale-105 shadow-sm'
                 }
             `}
         style={{ fontSize: gridNumberFont }}
@@ -54,10 +60,18 @@ const QuestionCard = memo(function QuestionCard({
         }}
         onMouseEnter={() => !isVisited && sounds.click()}
       >
-        {isVisited && (
-          <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none">
-            <span className="cell-visited-badge" aria-hidden="true">&#10003;</span>
-          </div>
+        {isMarked && !isDusting && (
+          <span className="cell-mark-badge" aria-hidden="true">
+            <Bookmark size={11} fill="currentColor" />
+          </span>
+        )}
+        {isVisited && !isDusting && (
+          <span className="cell-visited-badge" aria-hidden="true">
+            <Check size={14} strokeWidth={3.5} />
+          </span>
+        )}
+        {!isVisited && (
+          <span className="absolute inset-0 opacity-0 hover:opacity-10 pointer-events-none rounded-xl bg-[rgb(var(--color-primary))] transition-opacity" />
         )}
         <span className="relative z-10 drop-shadow-md">{q.id}</span>
       </button>
@@ -66,13 +80,15 @@ const QuestionCard = memo(function QuestionCard({
 });
 
 export default function GridPage() {
-    const { appConfig: config, allQuestions: questions } = useData();
-    const { visitedIds, resetProgress } = useQuiz();
+    const { appConfig: config, allQuestions: questions, activeRounds, activeEnableRounds } = useData();
+    const { visitedIds, markedIds, resetProgress } = useQuiz();
+    const dialog = useDialog();
     const navigate = useNavigate();
 
     const totalQuestions = questions.length;
     const completedCount = visitedIds.length;
     const remainingCount = totalQuestions - completedCount;
+    const unvisited = questions.filter(q => !visitedIds.includes(q.id));
 
     // Fullscreen State
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -80,8 +96,9 @@ export default function GridPage() {
     // Shortcuts Modal State
     const [showShortcuts, setShowShortcuts] = useState(false);
 
-    // Context Menu State
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+    // Snap/dust animation state
+    const [isSnapping, setIsSnapping] = useState(false);
+    const snapTimer = useRef<number | null>(null);
 
     // Navigation handler passed to memoized cards; depends on navigate.
     const handleCardNavigate = useCallback((id: number, isVisited: boolean) => {
@@ -89,6 +106,49 @@ export default function GridPage() {
         else sounds.click();
         navigate(`/question/${id}`);
     }, [navigate]);
+
+    // Snap: play a dust animation over visited cards, then clear progress.
+    const handleSnap = useCallback(async () => {
+        if (isSnapping) return;
+        if (completedCount === 0) {
+            dialog.toast('info', 'Nothing to snap yet', 'Answer a question first, then snap away the used ones.');
+            return;
+        }
+        const ok = await dialog.confirm({
+            title: 'The Snap',
+            message: `Dust away ${completedCount} visited question${completedCount === 1 ? '' : 's'}? Only the unvisited questions will remain.`,
+            confirmLabel: 'Snap',
+            cancelLabel: 'Keep Them',
+            danger: true,
+        });
+        if (!ok) return;
+        sounds.snap();
+        setIsSnapping(true);
+        if (snapTimer.current) window.clearTimeout(snapTimer.current);
+        snapTimer.current = window.setTimeout(() => {
+            resetProgress();
+            setIsSnapping(false);
+            dialog.toast('success', 'Perfectly balanced', 'Visited questions returned to dust. Unvisited questions remain.');
+        }, 1200);
+    }, [isSnapping, completedCount, dialog, resetProgress]);
+
+    // Clean up snap timer on unmount
+    useEffect(() => {
+        return () => {
+            if (snapTimer.current) window.clearTimeout(snapTimer.current);
+        };
+    }, []);
+
+    // Random question from the remaining (unvisited) pool.
+    const handleRandom = useCallback(() => {
+        if (unvisited.length === 0) {
+            dialog.toast('info', 'No questions left', 'Every question has been visited. Snap to dust them and start fresh!');
+            return;
+        }
+        const pick = unvisited[Math.floor(Math.random() * unvisited.length)];
+        sounds.select();
+        navigate(`/question/${pick.id}`);
+    }, [unvisited, dialog, navigate]);
 
     // Fullscreen Toggle Handler
     const toggleFullscreen = useCallback(() => {
@@ -133,20 +193,26 @@ export default function GridPage() {
                 e.preventDefault();
                 setShowShortcuts(prev => !prev);
             }
+
+            // Skip snap/random shortcuts when a dialog or modal is open
+            // (sheet-like overlays capture their own keys).
+            if (showShortcuts) return;
+
+            // Random unvisited question (R key)
+            if (e.key.toLowerCase() === 'r' && !e.altKey && !e.metaKey && !e.ctrlKey) {
+                e.preventDefault();
+                void handleRandom();
+            }
+
+            // Snap / dust visited questions (X key)
+            if (e.key.toLowerCase() === 'x' && !e.altKey && !e.metaKey && !e.ctrlKey) {
+                e.preventDefault();
+                void handleSnap();
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [toggleFullscreen, isFullscreen]);
-
-    // Context Menu Handler
-    useEffect(() => {
-        const handleContextMenu = (e: MouseEvent) => {
-            e.preventDefault();
-            setContextMenu({ x: e.clientX, y: e.clientY });
-        };
-        document.addEventListener('contextmenu', handleContextMenu);
-        return () => document.removeEventListener('contextmenu', handleContextMenu);
-    }, []);
+    }, [toggleFullscreen, isFullscreen, showShortcuts, handleRandom, handleSnap]);
 
     // --- PWA Install Logic ---
     const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -171,66 +237,90 @@ export default function GridPage() {
     };
 
     return (
-        <>
+        <SiteLayout>
+            {/* Snap dust overlay */}
+            {isSnapping && (
+                <div className="fixed inset-0 z-[80] pointer-events-none overflow-hidden" aria-hidden="true">
+                    <div className="snap-flash" />
+                    <div className="snap-text">SNAP!</div>
+                </div>
+            )}
+
             {/* Fullscreen Toggle Button - Fixed Top Right */}
             <button
                 onClick={toggleFullscreen}
-                className="fixed top-4 right-4 z-50 p-3 rounded-full bg-[var(--material-regular)] backdrop-blur-md border border-[var(--separator)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[var(--fill)] transition-all group"
+                className="fixed top-20 right-4 z-50 p-3 rounded-full bg-[var(--material-regular)] backdrop-blur-md border border-[var(--separator)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[var(--fill)] transition-all group"
                 title={isFullscreen ? 'Exit Fullscreen (F)' : 'Enter Fullscreen (F)'}
                 aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
                 {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                <span className="absolute -bottom-8 right-0 text-xs bg-black/80 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                <span className="absolute -bottom-8 right-0 text-xs bg-[var(--card-bg)] text-[rgb(var(--text-primary))] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-[var(--card-border)]">
                     Press F
                 </span>
             </button>
 
             {/* Main Grid Content */}
-            <div className="min-h-screen p-4 md:p-8 flex flex-col items-center">
+            <div className="p-4 md:p-8 flex flex-col items-center grow w-full">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mb-6 md:mb-8 relative z-10"
                 >
                     <h1 className="text-4xl md:text-5xl font-bold mb-2 title-gradient">{config.appName}</h1>
-                    <p className="text-[rgb(var(--text-secondary))] text-xs md:text-sm tracking-widest uppercase font-medium">Select a question to begin • <span className="opacity-60">Alt+Click to re-open visited</span></p>
+                    <p className="text-[rgb(var(--text-secondary))] text-xs md:text-sm tracking-widest uppercase font-medium">Select a question to begin • <span className="opacity-60">Alt+Click to re-open visited • R Random • X Snap</span></p>
                 </motion.div>
 
                 {/* Stats Dashboard */}
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="flex flex-wrap justify-center gap-2 md:gap-8 mb-6 md:mb-10 w-full max-w-4xl"
+                    transition={{ delay: 0.2, ease: [0.22, 1, 0.36, 1], duration: 0.45 }}
+                    className="w-full max-w-2xl mb-6 md:mb-10"
                 >
-                    {/* ... Stats blocks ... */}
-                    <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 min-w-[100px] md:min-w-[160px]">
-                        <div className="p-2 md:p-3 rounded-full bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))]">
-                            <Trophy className="w-4 h-4 md:w-6 md:h-6" />
+                    <div className="glass-panel p-4 md:p-5">
+                        {/* Progress bar */}
+                        <div className="flex items-center justify-between mb-2.5">
+                            <span className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>
+                                Progress
+                            </span>
+                            <span className="font-bold text-[rgb(var(--color-primary))]" style={{ fontSize: config.fonts.statsTitle }}>
+                                {totalQuestions === 0 ? 0 : Math.round((completedCount / totalQuestions) * 100)}%
+                            </span>
                         </div>
-                        <div className="text-center md:text-left">
-                            <p className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>Total</p>
-                            <p className="font-bold text-[rgb(var(--text-primary))] leading-none" style={{ fontSize: config.fonts.statsValue }}>{totalQuestions}</p>
+                        <div className="w-full h-2.5 rounded-full overflow-hidden bg-[var(--fill)] border border-[var(--card-border)]">
+                            <motion.div
+                                className="h-full rounded-full bg-[rgb(var(--color-primary))]"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${totalQuestions === 0 ? 0 : (completedCount / totalQuestions) * 100}%` }}
+                                transition={{ delay: 0.35, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                            />
                         </div>
-                    </div>
 
-                    <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 min-w-[100px] md:min-w-[160px]">
-                        <div className="p-2 md:p-3 rounded-full bg-[rgb(var(--success))]/15 text-[rgb(var(--success))]">
-                            <Target className="w-4 h-4 md:w-6 md:h-6" />
-                        </div>
-                        <div className="text-center md:text-left">
-                            <p className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>Left</p>
-                            <p className="font-bold text-[rgb(var(--text-primary))] leading-none" style={{ fontSize: config.fonts.statsValue }}>{remainingCount}</p>
-                        </div>
-                    </div>
+                        {/* Stat cells */}
+                        <div className="mt-4 grid grid-cols-3 gap-3">
+                            <div className="rounded-xl p-3 flex flex-col items-center gap-1 bg-[var(--fill)] border border-[var(--card-border)]">
+                                <div className="p-2 rounded-full bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))]">
+                                    <ListChecks className="w-4 h-4 md:w-5 md:h-5" />
+                                </div>
+                                <p className="font-bold text-[rgb(var(--text-primary))] leading-none" style={{ fontSize: config.fonts.statsValue }}>{completedCount}</p>
+                                <p className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>Done</p>
+                            </div>
 
-                    <div className="glass-panel p-3 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 min-w-[100px] md:min-w-[160px]">
-                        <div className="p-2 md:p-3 rounded-full bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))]">
-                            <ListChecks className="w-4 h-4 md:w-6 md:h-6" />
-                        </div>
-                        <div className="text-center md:text-left">
-                            <p className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>Done</p>
-                            <p className="font-bold text-[rgb(var(--text-primary))] leading-none" style={{ fontSize: config.fonts.statsValue }}>{completedCount}</p>
+                            <div className="rounded-xl p-3 flex flex-col items-center gap-1 bg-[var(--fill)] border border-[var(--card-border)]">
+                                <div className="p-2 rounded-full bg-[rgb(var(--warning))]/15 text-[rgb(var(--warning))]">
+                                    <Target className="w-4 h-4 md:w-5 md:h-5" />
+                                </div>
+                                <p className="font-bold text-[rgb(var(--text-primary))] leading-none" style={{ fontSize: config.fonts.statsValue }}>{remainingCount}</p>
+                                <p className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>Left</p>
+                            </div>
+
+                            <div className="rounded-xl p-3 flex flex-col items-center gap-1 bg-[var(--fill)] border border-[var(--card-border)]">
+                                <div className="p-2 rounded-full bg-[rgb(var(--success))]/15 text-[rgb(var(--success))]">
+                                    <Trophy className="w-4 h-4 md:w-5 md:h-5" />
+                                </div>
+                                <p className="font-bold text-[rgb(var(--text-primary))] leading-none" style={{ fontSize: config.fonts.statsValue }}>{totalQuestions}</p>
+                                <p className="uppercase font-bold text-[rgb(var(--text-secondary))]" style={{ fontSize: config.fonts.statsTitle }}>Total</p>
+                            </div>
                         </div>
                     </div>
                 </motion.div>
@@ -239,9 +329,9 @@ export default function GridPage() {
                 {/* Note: We need to update QuestionCard to use style={{ fontSize: config.fonts.gridNumber }} */}
 
                 {/* Logic for Rounds vs Standard Grid */}
-                {config.enableRounds ? (
+                {activeEnableRounds ? (
                     <div className="w-full max-w-7xl flex flex-col gap-12">
-                        {config.rounds.map((round, rIdx) => {
+                        {activeRounds.map((round, rIdx) => {
                             const roundQuestions = questions.filter(q => q.id >= round.range[0] && q.id <= round.range[1]);
                             if (roundQuestions.length === 0) return null;
 
@@ -265,6 +355,8 @@ export default function GridPage() {
                                                 key={q.id}
                                                 q={q}
                                                 isVisited={visitedIds.includes(q.id)}
+                                                isMarked={markedIds.includes(q.id)}
+                                                isDusting={isSnapping && visitedIds.includes(q.id)}
                                                 gridNumberFont={config.fonts.gridNumber}
                                                 onNavigate={handleCardNavigate}
                                             />
@@ -294,6 +386,8 @@ export default function GridPage() {
                                 key={q.id}
                                 q={q}
                                 isVisited={visitedIds.includes(q.id)}
+                                isMarked={markedIds.includes(q.id)}
+                                isDusting={isSnapping && visitedIds.includes(q.id)}
                                 gridNumberFont={config.fonts.gridNumber}
                                 onNavigate={handleCardNavigate}
                             />
@@ -308,11 +402,34 @@ export default function GridPage() {
                         <span className="sm:hidden">Admin</span>
                     </Link>
                     <motion.button
-                        onClick={() => {
+                        onClick={() => void handleRandom()}
+                        className="btn-secondary flex items-center gap-2 text-sm px-3 py-2"
+                        title="Open a random unvisited question (R)"
+                    >
+                        <Shuffle size={16} />
+                        <span className="hidden sm:inline">Random</span>
+                        <span className="sm:hidden">Random</span>
+                    </motion.button>
+                    <motion.button
+                        onClick={() => void handleSnap()}
+                        className="btn-secondary flex items-center gap-2 text-sm px-3 py-2 border-[rgb(var(--color-primary))]/0 text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger))]/15 hover:text-[rgb(var(--danger))]"
+                        title="Snap/purge all visited questions (X)"
+                    >
+                        <Sparkles size={16} />
+                        <span className="hidden sm:inline">Snap</span>
+                        <span className="sm:hidden">Snap</span>
+                    </motion.button>
+                    <motion.button
+                        onClick={async () => {
                             sounds.select();
-                            if (confirm('Are you sure you want to reset all progress?')) {
-                                resetProgress();
-                            }
+                            const ok = await dialog.confirm({
+                                title: 'Reset Progress',
+                                message: 'Clear the visited marks on all question cards?',
+                                confirmLabel: 'Reset',
+                                cancelLabel: 'Keep Marks',
+                                danger: true,
+                            });
+                            if (ok) resetProgress();
                         }}
                         className="btn-secondary flex items-center gap-2 group border-[rgb(var(--color-primary))]/0 text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger))]/15 hover:text-[rgb(var(--danger))] text-sm px-3 py-2"
                     >
@@ -333,80 +450,13 @@ export default function GridPage() {
                         </motion.button>
                     )}
                 </div>
-
-                {/* About / guide content */}
-                <section className="mt-16 max-w-3xl mx-auto text-left glass-panel p-6 md:p-8">
-                    <h2 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-3">What is Sajilo Quiz?</h2>
-                    <p className="text-[rgb(var(--text-secondary))] leading-relaxed mb-4">
-                        Sajilo Quiz is a free quiz presentation app for running live events: school and college
-                        competitions, office game nights, and classroom reviews. You build your questions and rounds
-                        in the admin panel, project the question grid on a big screen, and reveal questions one by
-                        one while the sidebar keeps team scores. It was built for real quiz competitions in Nepal,
-                        where venue internet can fail at the worst moment, so the whole app works completely offline
-                        once loaded.
-                    </p>
-
-                    <h2 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-3 mt-8">How to run a quiz with it</h2>
-                    <ul className="text-[rgb(var(--text-secondary))] leading-relaxed mb-4 list-disc pl-5 space-y-2">
-                        <li>Open the <strong className="text-[rgb(var(--text-primary))]">Admin Panel</strong> and add your questions, rounds, and any images or audio.</li>
-                        <li>Project this grid page on the venue screen. Press F for fullscreen.</li>
-                        <li>Click a numbered card to reveal its question. Answered cards are marked so you never repeat one.</li>
-                        <li>Keep scores in the team scoreboard sidebar as the rounds progress.</li>
-                        <li>Press ? anytime to see all keyboard shortcuts, and use Reset Progress to start a fresh session.</li>
-                    </ul>
-
-                    <h2 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-3 mt-8">Frequently asked questions</h2>
-                    <div className="space-y-4 text-[rgb(var(--text-secondary))] leading-relaxed">
-                        <div>
-                            <h3 className="font-semibold text-[rgb(var(--text-primary))]">Does it need internet during the event?</h3>
-                            <p>No. Install it (or just load it once) and everything, including your media, runs offline. That is the whole point of the app.</p>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-[rgb(var(--text-primary))]">Where is my quiz data stored?</h3>
-                            <p>On your own device, in your browser's local storage. Nothing you create is uploaded to any server.</p>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-[rgb(var(--text-primary))]">Can I use images and sound?</h3>
-                            <p>Yes. Questions support multimedia, and the app has built-in sound effects for reveals and results.</p>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-[rgb(var(--text-primary))]">Is it really free?</h3>
-                            <p>Yes. It began as a tool for events I helped run, and it is shared so anyone can use it.</p>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Footer */}
-                <footer className="mt-10 pb-6 text-center text-sm text-[rgb(var(--text-secondary))]">
-                    <p className="mb-2">
-                        <Link to="/privacy" className="text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] underline-offset-4 hover:underline mx-2">Privacy Policy</Link>
-                        <Link to="/terms" className="text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] underline-offset-4 hover:underline mx-2">Terms</Link>
-                        <a href="https://github.com/arundada9000/sajiloquiz" target="_blank" rel="noopener noreferrer" className="text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] underline-offset-4 hover:underline mx-2">Source Code</a>
-                    </p>
-                    <p>
-                        &copy; {new Date().getFullYear()}{' '}
-                        <a href="https://arunneupane.netlify.app/" target="_blank" rel="noopener noreferrer" className="text-[rgb(var(--color-primary))] hover:text-[rgb(var(--color-secondary))]">Arun Neupane</a>
-                        {' '}| Reach me anytime:{' '}
-                        <a href="mailto:arunneupane0000@gmail.com" className="text-[rgb(var(--color-primary))] hover:text-[rgb(var(--color-secondary))]">arunneupane0000@gmail.com</a>
-                    </p>
-                    <p className="mt-2 text-xs">
-                        {site.companyName} &middot; {site.tagline}
-                    </p>
-                </footer>
             </div>
+
             {/* Shortcuts Modal */}
             <ShortcutsModal
                 isOpen={showShortcuts}
                 onClose={() => setShowShortcuts(false)}
             />
-            {contextMenu && (
-                <ContextMenu
-                    x={contextMenu.x}
-                    y={contextMenu.y}
-                    onClose={() => setContextMenu(null)}
-                    pageType="grid"
-                />
-            )}
-        </>
+        </SiteLayout>
     );
 }

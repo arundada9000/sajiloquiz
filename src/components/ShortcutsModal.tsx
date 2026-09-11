@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { X, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Entry = {
@@ -18,6 +19,8 @@ const entries: Entry[] = [
     { keys: ['Alt', 'Click'], description: 'Re-open a visited question', category: 'Grid Page' },
     { keys: ['Double-click'], description: 'Open a question from the grid', category: 'Grid Page', kind: 'gesture' },
     { keys: ['Right-click'], description: 'Open quick actions menu', category: 'Grid Page', kind: 'gesture' },
+    { keys: ['R'], description: 'Open a random unvisited question', category: 'Grid Page' },
+    { keys: ['X'], description: 'Snap away all visited questions', category: 'Grid Page' },
 
     // Question Page
     { keys: ['Space'], description: 'Reveal / Hide Answer', category: 'Question Page' },
@@ -25,6 +28,7 @@ const entries: Entry[] = [
     { keys: ['Q'], description: 'Open Quick Peek Overview', category: 'Question Page' },
     { keys: ['T'], description: 'Start / Pause Timer', category: 'Question Page' },
     { keys: ['R'], description: 'Reset Timer', category: 'Question Page' },
+    { keys: ['M'], description: 'Mark / Unmark Question', category: 'Question Page' },
     { keys: ['+', ']'], description: 'Increase Text Size', category: 'Question Page' },
     { keys: ['-', '['], description: 'Decrease Text Size', category: 'Question Page' },
     { keys: ['0'], description: 'Reset Text Size', category: 'Question Page' },
@@ -128,9 +132,19 @@ export default function ShortcutsModal({ isOpen, onClose }: Props) {
                             ))}
                         </div>
 
-                        <div className="mt-6 pt-4 border-t border-[var(--separator)] text-center text-xs text-[rgb(var(--text-secondary))]">
-                            Press <kbd className="px-2 py-1 bg-[var(--fill)] rounded border border-[var(--card-border)]">Esc</kbd> or{' '}
-                            <kbd className="px-2 py-1 bg-[var(--fill)] rounded border border-[var(--card-border)]">?</kbd> to close
+                        <div className="mt-6 pt-4 border-t border-[var(--separator)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[rgb(var(--text-secondary))]">
+                            <span>
+                                Press <kbd className="px-2 py-1 bg-[var(--fill)] rounded border border-[var(--card-border)]">Esc</kbd> or{' '}
+                                <kbd className="px-2 py-1 bg-[var(--fill)] rounded border border-[var(--card-border)]">?</kbd> to close
+                            </span>
+                            <Link
+                                to="/guide#shortcuts"
+                                onClick={onClose}
+                                className="inline-flex items-center gap-1.5 text-[rgb(var(--color-primary))] font-medium hover:underline"
+                            >
+                                <BookOpen size={14} />
+                                Full guide
+                            </Link>
                         </div>
                     </motion.div>
                 </motion.div>

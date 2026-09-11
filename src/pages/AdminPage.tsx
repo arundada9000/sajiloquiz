@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -9,38 +9,35 @@ import {
   Trash2,
   Users,
   Edit2,
-  Check,
-  X,
   Volume2,
   Moon,
   Sun,
   Monitor,
   Sparkles,
-  Instagram,
-  Facebook,
   Github,
-  Youtube,
-  Code,
-  Smartphone,
-  Search,
-  ShoppingBag,
-  BarChart3,
-  MapPin,
   Mail,
-  Phone,
   ExternalLink,
   User,
-  Terminal,
+  ListChecks,
+  SlidersHorizontal,
+  Palette,
+  HelpCircle,
+  Settings,
 } from "lucide-react";
-import { useData, Question, AppConfig, Round } from "../context/DataContext";
+import type { LucideIcon } from "lucide-react";
+import { useData, Question, AppConfig, Round, QuestionBatch } from "../context/DataContext";
+import { config as defaultConfig } from "../data/config";
 import { sounds } from "../utils/sounds";
 import License from "../components/License";
 import { ColorSchemeId } from "../utils/theme";
+import { useDialog } from "../context/DialogContext";
 
 export default function AdminPage() {
   const {
     appConfig,
     allQuestions,
+    batches,
+    activeBatchId,
     updateConfig,
     addQuestion,
     editQuestion,
@@ -48,7 +45,20 @@ export default function AdminPage() {
     resetData,
     importData,
     exportData,
+    createBatch,
+    renameBatch,
+    deleteBatch,
+    setActiveBatch,
+    importIntoBatch,
+    exportBatch,
+    activeRounds,
+    activeEnableRounds,
+    updateBatchRounds,
+    setBatchEnableRounds,
+    resetQuestions,
+    resetTeams,
   } = useData();
+  const dialog = useDialog();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<
@@ -75,27 +85,61 @@ export default function AdminPage() {
   // We bind forms directly to config updates or keep local buffer if validaton needed
   // For simplicity in this v1, we will update directly or use simple local state for questions
 
+  const runSectionReset = (which: ResettableTab) => {
+    switch (which) {
+      case "general":
+        updateConfig({
+          appName: defaultConfig.appName,
+          companyName: defaultConfig.companyName,
+          timer: defaultConfig.timer,
+          scoring: defaultConfig.scoring,
+        });
+        break;
+      case "appearance":
+        updateConfig({ fonts: defaultConfig.fonts });
+        break;
+      case "theme":
+        updateConfig({ theme: defaultConfig.theme });
+        break;
+      case "sounds":
+        updateConfig({ sounds: defaultConfig.sounds });
+        break;
+      case "questions":
+        resetQuestions();
+        break;
+      case "teams":
+        resetTeams();
+        break;
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 text-[rgb(var(--text-primary))] pb-32">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-8 gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <Link
               to="/"
-              className="p-2 hover:bg-[var(--card-bg)] rounded-full transition-colors text-[rgb(var(--text-primary))]"
+              className="p-2 hover:bg-[var(--fill)] rounded-full transition-colors text-[rgb(var(--text-primary))] hover:text-[rgb(var(--color-primary))]"
+              title="Back to Grid"
             >
               <ArrowLeft />
             </Link>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl md:text-3xl font-black title-gradient leading-tight">
+                Admin Dashboard
+              </h1>
+              <p className="text-xs md:text-sm text-[rgb(var(--text-secondary))] truncate">
+                Manage questions, rounds, teams and the look of your quiz
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => navigate("/")}
-              className="px-4 py-2 bg-[rgb(var(--color-primary))] hover:bg-[rgb(var(--color-secondary))] text-[rgb(var(--label-inverse))] rounded-lg font-bold"
-            >
-              Launch Quiz
-            </button>
-          </div>
+          <button
+            onClick={() => navigate("/")}
+            className="btn-primary flex items-center gap-2 text-sm px-4 py-2.5 whitespace-nowrap"
+          >
+            Launch Quiz
+          </button>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6 md:gap-8">
@@ -105,54 +149,63 @@ export default function AdminPage() {
               <TabButton
                 id="questions"
                 label="Questions"
+                icon={ListChecks}
                 active={activeTab}
                 onClick={setActiveTab}
               />
               <TabButton
                 id="general"
                 label="Settings"
+                icon={Settings}
                 active={activeTab}
                 onClick={setActiveTab}
               />
               <TabButton
                 id="appearance"
                 label="Appearance"
+                icon={SlidersHorizontal}
                 active={activeTab}
                 onClick={setActiveTab}
               />
               <TabButton
                 id="theme"
                 label="Theme"
+                icon={Palette}
                 active={activeTab}
                 onClick={setActiveTab}
               />
               <TabButton
                 id="sounds"
                 label="Sounds"
+                icon={Volume2}
                 active={activeTab}
                 onClick={setActiveTab}
               />
               <TabButton
                 id="data"
                 label="Backup"
+                icon={Download}
                 active={activeTab}
                 onClick={setActiveTab}
               />
               <TabButton
                 id="teams"
                 label="Teams"
+                icon={Users}
                 active={activeTab}
                 onClick={setActiveTab}
               />
               <TabButton
                 id="help"
                 label="Help"
+                icon={HelpCircle}
                 active={activeTab}
                 onClick={setActiveTab}
               />
               <TabButton
                 id="about"
                 label="About"
+                icon={Sparkles}
                 active={activeTab}
                 onClick={setActiveTab}
               />
@@ -161,6 +214,23 @@ export default function AdminPage() {
 
           {/* Main Content Area */}
           <div className="flex-1 glass-panel p-4 md:p-8 min-h-[500px]">
+            {activeTab !== "data" && activeTab !== "help" && activeTab !== "about" && (
+              <SectionResetBar
+                tab={activeTab}
+                onReset={async (which) => {
+                  const title = RESET_TITLES[which];
+                  const ok = await dialog.confirm({
+                    title: `Reset ${title}`,
+                    message: `Reset the ${title.toLowerCase()} settings back to their defaults?`,
+                    confirmLabel: "Reset",
+                    cancelLabel: "Keep",
+                    danger: true,
+                  });
+                  if (!ok) return;
+                  runSectionReset(which);
+                }}
+              />
+            )}
             {activeTab === "general" && (
               <GeneralSettings tabConfig={appConfig} onUpdate={updateConfig} />
             )}
@@ -179,25 +249,44 @@ export default function AdminPage() {
             {activeTab === "questions" && (
               <QuestionManager
                 questions={allQuestions}
-                rounds={appConfig.rounds}
-                enableRounds={appConfig.enableRounds}
+                rounds={activeRounds}
+                enableRounds={activeEnableRounds}
+                batches={batches}
+                activeBatchId={activeBatchId}
                 onAdd={addQuestion}
                 onEdit={editQuestion}
                 onDelete={deleteQuestion}
+                onCreateBatch={createBatch}
+                onRenameBatch={renameBatch}
+                onDeleteBatch={deleteBatch}
+                onSetActiveBatch={setActiveBatch}
+                onExportBatch={exportBatch}
+                onImportIntoBatch={importIntoBatch}
+                onUpdateRounds={updateBatchRounds}
+                onSetEnableRounds={setBatchEnableRounds}
               />
             )}
             {activeTab === "data" && (
               <DataActions
-                onReset={resetData}
+                onReset={async () => {
+                  const ok = await dialog.confirm({
+                    title: "Factory Reset",
+                    message:
+                      "Reset ALL settings, questions, batches and teams to their defaults? This cannot be undone.",
+                    confirmLabel: "Reset",
+                    cancelLabel: "Keep Data",
+                    danger: true,
+                  });
+                  if (ok) resetData();
+                }}
                 onImport={importData}
                 onExport={exportData}
                 config={appConfig}
                 questions={allQuestions}
+                batches={batches}
               />
             )}
-            {activeTab === "teams" && (
-              <TeamManagement />
-            )}
+            {activeTab === "teams" && <TeamManagement />}
             {activeTab === "help" && <HelpGuide />}
             {activeTab === "about" && <AboutCompany />}
           </div>
@@ -220,23 +309,60 @@ type TabId =
   | "help"
   | "about";
 
+type ResettableTab = Exclude<TabId, "data" | "help" | "about">;
+
+const RESET_TITLES: Record<ResettableTab, string> = {
+  general: "General Settings",
+  appearance: "Appearance",
+  questions: "Questions",
+  theme: "Theme",
+  sounds: "Sounds",
+  teams: "Teams",
+};
+
+function SectionResetBar({
+  tab,
+  onReset,
+}: {
+  tab: ResettableTab;
+  onReset: (tab: ResettableTab) => void;
+}) {
+  return (
+    <div className="flex items-center justify-end mb-6 -mt-2">
+      <button
+        onClick={() => onReset(tab)}
+        className="text-xs font-semibold px-3 py-1.5 rounded-full text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger))]/10 border border-[var(--card-border)] hover:border-[rgb(var(--danger))]/40 inline-flex items-center gap-1.5 transition-all"
+      >
+        <RotateCcw size={13} /> Reset {RESET_TITLES[tab]} to defaults
+      </button>
+    </div>
+  );
+}
+
 function TabButton({
   id,
   label,
+  icon: Icon,
   active,
   onClick,
 }: {
   id: TabId;
   label: string;
+  icon: LucideIcon;
   active: TabId;
   onClick: (id: TabId) => void;
 }) {
   return (
     <button
       onClick={() => onClick(id)}
-      className={`text-left px-4 py-3 rounded-xl transition-colors ${active === id ? "bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))] font-bold" : "text-[rgb(var(--text-secondary))] hover:bg-[var(--fill)] hover:text-[rgb(var(--text-primary))]"}`}
+      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap text-left w-full ${
+        active === id
+          ? "tint-bg text-[rgb(var(--color-primary))] shadow-sm"
+          : "text-[rgb(var(--text-secondary))] hover:bg-[var(--fill)] hover:text-[rgb(var(--text-primary))]"
+      }`}
     >
-      {label}
+      <Icon size={18} className="shrink-0" />
+      <span>{label}</span>
     </button>
   );
 }
@@ -248,44 +374,6 @@ function GeneralSettings({
   tabConfig: AppConfig;
   onUpdate: (c: Partial<AppConfig>) => void;
 }) {
-  const handleRoundUpdate = (
-    idx: number,
-    field: keyof Round,
-    value: string | [number, number],
-  ) => {
-    const newRounds = [...tabConfig.rounds];
-    if (field === "range") {
-      newRounds[idx] = {
-        ...newRounds[idx],
-        range: value as [number, number],
-      };
-    } else {
-      const next = value as string;
-      newRounds[idx] = { ...newRounds[idx], [field]: next };
-    }
-    onUpdate({ rounds: newRounds });
-  };
-
-  const addRound = () => {
-    const lastRound = tabConfig.rounds[tabConfig.rounds.length - 1];
-    const newStart = lastRound ? lastRound.range[1] + 1 : 1;
-    const newRound: Round = {
-      title: `Round ${tabConfig.rounds.length + 1}`,
-      range: [newStart, newStart + 10],
-    };
-    onUpdate({ rounds: [...tabConfig.rounds, newRound] });
-  };
-
-  const deleteRound = (idx: number) => {
-    if (
-      confirm(
-        "Delete this round? Questions in this range will remain but won't belong to a round.",
-      )
-    ) {
-      onUpdate({ rounds: tabConfig.rounds.filter((_, i) => i !== idx) });
-    }
-  };
-
   return (
     <div className="space-y-8 animate-fade-in">
       <SectionTitle title="Identity" />
@@ -323,15 +411,15 @@ function GeneralSettings({
           }
         />
       </div>
-      <div className="flex flex-col gap-2">
-        <Checkbox
+      <div className="rounded-xl overflow-hidden bg-[var(--card-bg)] border border-[var(--card-border)] divide-y divide-[var(--separator)] shadow-sm">
+        <Toggle
           label="Auto-start timer when question opens"
           checked={tabConfig.timer.autoStartOnOpen}
           onChange={(c) =>
             onUpdate({ timer: { ...tabConfig.timer, autoStartOnOpen: c } })
           }
         />
-        <Checkbox
+        <Toggle
           label="Auto-start timer after passing"
           checked={tabConfig.timer.autoStartOnPass}
           onChange={(c) =>
@@ -373,82 +461,6 @@ function GeneralSettings({
           }
         />
       </div>
-
-      <SectionTitle title="Rounds Configuration" />
-      <div className="flex justify-between items-center mb-4">
-        <Checkbox
-          label="Enable Round Grouping"
-          checked={tabConfig.enableRounds}
-          onChange={(c) => onUpdate({ enableRounds: c })}
-        />
-        {tabConfig.enableRounds && (
-          <button
-            onClick={addRound}
-            className="text-xs px-2 py-1 bg-[rgb(var(--success))]/15 text-[rgb(var(--success))] rounded hover:bg-[rgb(var(--success))]/50 flex items-center gap-1"
-          >
-            <Plus size={14} /> Add Round
-          </button>
-        )}
-      </div>
-
-      {tabConfig.enableRounds && (
-        <div className="space-y-4 mt-2">
-          {tabConfig.rounds.map((round, idx) => (
-            <div
-              key={idx}
-              className="p-4 rounded bg-[var(--card-bg)] border border-[var(--card-border)] flex flex-col gap-4 relative group shadow-sm"
-            >
-              <div className="flex justify-between items-start">
-                <h4 className="text-sm font-bold text-[rgb(var(--text-secondary))]">
-                  Round {idx + 1}
-                </h4>
-                <button
-                  onClick={() => deleteRound(idx)}
-                  className="p-1 text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger))]/15 rounded md:opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputGroup
-                  label="Title"
-                  value={round.title}
-                  onChange={(v) => handleRoundUpdate(idx, "title", v)}
-                />
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <InputGroup
-                      type="number"
-                      label="Start ID"
-                      value={round.range[0]}
-                      onChange={(v) =>
-                        handleRoundUpdate(idx, "range", [
-                          Number(v),
-                          round.range[1],
-                        ])
-                      }
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <InputGroup
-                      type="number"
-                      label="End ID"
-                      value={round.range[1]}
-                      onChange={(v) =>
-                        handleRoundUpdate(idx, "range", [
-                          round.range[0],
-                          Number(v),
-                        ])
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -549,6 +561,11 @@ function SoundSettings({
         label: "Fullscreen",
         description: "Fullscreen toggle",
       },
+      {
+        key: "snap",
+        label: "Snap",
+        description: "Snap/dust away visited questions",
+      },
     ];
 
   return (
@@ -582,56 +599,58 @@ function SoundSettings({
             </button>
           </div>
         </div>
-        <Checkbox
-          label="Master Sound Toggle"
-          checked={tabConfig.sounds.masterEnabled}
-          onChange={(c) => updateSound("masterEnabled", c)}
-        />
+        <div className="rounded-xl overflow-hidden bg-[var(--card-bg)] border border-[var(--card-border)] divide-y divide-[var(--separator)] shadow-sm">
+          <Toggle
+            label="Master Sound Toggle"
+            checked={tabConfig.sounds.masterEnabled}
+            onChange={(c) => updateSound("masterEnabled", c)}
+          />
+        </div>
       </div>
 
       {/* Individual Sound Controls */}
-      <div className="space-y-3">
-        <h4 className="text-sm uppercase tracking-wider text-[rgb(var(--text-secondary))] font-bold">
+      <div>
+        <h4 className="text-sm uppercase tracking-wider text-[rgb(var(--text-secondary))] font-bold mb-3">
           Individual Sound Controls
         </h4>
-        {soundsList.map((sound) => (
-          <div
-            key={sound.key}
-            className="p-4 rounded-lg bg-[var(--fill)] border border-[var(--card-border)] hover:border-[var(--card-border)] transition-colors flex items-center justify-between group"
-          >
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <Checkbox
+        <div className="rounded-xl overflow-hidden bg-[var(--card-bg)] border border-[var(--card-border)] divide-y divide-[var(--separator)] shadow-sm">
+          {soundsList.map((sound) => (
+            <div
+              key={sound.key}
+              className="px-4 py-3 flex items-center justify-between gap-3 group transition-colors hover:bg-[var(--fill)]"
+            >
+              <div className="min-w-0">
+                <p className="font-bold text-[rgb(var(--text-primary))] text-sm">{sound.label}</p>
+                <p className="text-xs text-[rgb(var(--text-secondary))]">{sound.description}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    // Temporarily enable to preview even if disabled
+                    const soundFunc = sounds[sound.key as keyof typeof sounds];
+                    if (typeof soundFunc === "function") {
+                      soundFunc();
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-[rgb(var(--color-primary))]/20 hover:bg-[rgb(var(--color-primary))]/40 text-[rgb(var(--color-primary))] rounded-lg text-sm font-medium transition-colors md:opacity-0 md:group-hover:opacity-100 flex items-center gap-1"
+                  title="Preview Sound"
+                >
+                  <Volume2 size={14} /> Preview
+                </button>
+                <Toggle
                   label=""
                   checked={tabConfig.sounds[sound.key]}
                   onChange={(c) => updateSound(sound.key, c)}
                 />
-                <div>
-                  <p className="font-bold text-[rgb(var(--text-primary))]">{sound.label}</p>
-                  <p className="text-xs text-[rgb(var(--text-secondary))]">{sound.description}</p>
-                </div>
               </div>
             </div>
-            <button
-              onClick={() => {
-                // Temporarily enable to preview even if disabled
-                const soundFunc = sounds[sound.key as keyof typeof sounds];
-                if (typeof soundFunc === "function") {
-                  soundFunc();
-                }
-              }}
-              className="px-3 py-1.5 bg-[rgb(var(--color-primary))]/20 hover:bg-[rgb(var(--color-primary))]/40 text-[rgb(var(--color-primary))] rounded-lg text-sm font-medium transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1"
-              title="Preview Sound"
-            >
-              <Volume2 size={14} /> Preview
-            </button>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       <div className="p-4 rounded bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/20 text-sm text-[rgb(var(--color-primary))]">
         <p>
-          💡 <strong>Tip:</strong> Sounds are generated using Web Audio API. No
+          <strong>Tip:</strong> Sounds are generated using Web Audio API. No
           external files needed! Preview any sound to hear it.
         </p>
       </div>
@@ -696,16 +715,17 @@ function ThemeSettings({
     primary: string;
     secondary: string;
   }> = [
-    { id: "purple", name: "Purple", primary: "#8b5cf6", secondary: "#a855f7" },
-    { id: "indigo", name: "Indigo", primary: "#6366f1", secondary: "#8b8cf5" },
-    { id: "blue", name: "Ocean", primary: "#0ea5e9", secondary: "#38bdf8" },
-    { id: "teal", name: "Teal", primary: "#0d9488", secondary: "#2dd4bf" },
-    { id: "green", name: "Paper", primary: "#16a34a", secondary: "#4ade80" },
-    { id: "orange", name: "Sunset", primary: "#ea580c", secondary: "#fb923c" },
-    { id: "red", name: "Crimson", primary: "#dc2626", secondary: "#f87171" },
-    { id: "pink", name: "Blush", primary: "#db2777", secondary: "#f472b6" },
-    { id: "graphite", name: "Slate", primary: "#475569", secondary: "#94a3b8" },
-    { id: "custom", name: "Custom", primary: "#8b5cf6", secondary: "#a855f7" },
+    { id: "purple", name: "Purple", primary: "#af52de", secondary: "#bf5af2" },
+    { id: "indigo", name: "Indigo", primary: "#5856d6", secondary: "#5e5ce6" },
+    { id: "blue", name: "Blue", primary: "#007aff", secondary: "#0a84ff" },
+    { id: "teal", name: "Teal", primary: "#30b0c7", secondary: "#40c8e0" },
+    { id: "green", name: "Green", primary: "#34c759", secondary: "#30d158" },
+    { id: "orange", name: "Orange", primary: "#ff9500", secondary: "#ff9f0a" },
+    { id: "red", name: "Red", primary: "#ff3b30", secondary: "#ff453a" },
+    { id: "pink", name: "Pink", primary: "#ff2d55", secondary: "#ff375f" },
+    { id: "cyan", name: "Cyan", primary: "#32ade6", secondary: "#64d2ff" },
+    { id: "graphite", name: "Slate", primary: "#8e8e93", secondary: "#98989e" },
+    { id: "custom", name: "Custom", primary: "#af52de", secondary: "#bf5af2" },
   ];
 
   // RGB helper for the custom palette preview.
@@ -853,7 +873,7 @@ function ThemeSettings({
                   type="text"
                   value={`rgb(${customTint[field]})`}
                   onChange={(e) => updateCustomColor(field, parseRgb(e.target.value, customTint[field]))}
-                  className="bg-[var(--fill)] border border-[var(--card-border)] rounded-lg px-3 py-2 text-xs font-mono text-[rgb(var(--text-primary))] outline-none focus:border-[rgb(var(--color-primary))]"
+                  className="ios-input px-3 py-2 text-xs font-mono"
                 />
               </div>
             ))}
@@ -898,23 +918,53 @@ function QuestionManager({
   questions,
   rounds,
   enableRounds,
+  batches,
+  activeBatchId,
   onAdd,
   onEdit,
   onDelete,
+  onCreateBatch,
+  onRenameBatch,
+  onDeleteBatch,
+  onSetActiveBatch,
+  onExportBatch,
+  onImportIntoBatch,
+  onUpdateRounds,
+  onSetEnableRounds,
 }: {
   questions: Question[];
   rounds: Round[];
   enableRounds: boolean;
+  batches: QuestionBatch[];
+  activeBatchId: string | null;
   onAdd: (newQ: Omit<Question, "id">, specificId?: number) => void;
   onEdit: (oldId: number, newQ: Question) => void;
   onDelete: (id: number) => void;
+  onCreateBatch: (name: string) => void;
+  onRenameBatch: (id: string, name: string) => void;
+  onDeleteBatch: (id: string) => void;
+  onSetActiveBatch: (id: string) => void;
+  onExportBatch: (id: string) => void;
+  onImportIntoBatch: (jsonData: string, targetBatchId?: string) => boolean;
+  onUpdateRounds: (id: string, rounds: Round[]) => void;
+  onSetEnableRounds: (id: string, enabled: boolean) => void;
 }) {
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Question>>({});
   const [isAdding, setIsAdding] = useState(false);
-  const [addForm, setAddForm] = useState<
-    Partial<Question> & { roundIdx: number }
-  >({ text: "", answer: "", roundIdx: -1 });
+
+  // Batch state
+  const [newBatchName, setNewBatchName] = useState("");
+  const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
+  const [editingBatchName, setEditingBatchName] = useState("");
+  const [importTargetId, setImportTargetId] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const dialog = useDialog();
+
+  // Helper to find Round index for an ID
+  const getRoundIdxForId = (id: number) => {
+    if (!enableRounds) return -1;
+    return rounds.findIndex((r) => id >= r.range[0] && id <= r.range[1]);
+  };
 
   // Helper to find Round for an ID
   const getRoundForId = (id: number) => {
@@ -938,54 +988,333 @@ function QuestionManager({
     return candidate > round.range[1] ? undefined : candidate; // Return undefined if full
   };
 
+  const handleRoundUpdate = (
+    idx: number,
+    field: keyof Round,
+    value: string | [number, number],
+  ) => {
+    if (!activeBatchId) return;
+    const next = [...rounds];
+    if (field === "range") {
+      next[idx] = { ...next[idx], range: value as [number, number] };
+    } else {
+      next[idx] = { ...next[idx], [field]: value as string };
+    }
+    onUpdateRounds(activeBatchId, next);
+  };
+
+  const addRound = () => {
+    if (!activeBatchId) return;
+    const lastRound = rounds[rounds.length - 1];
+    const newStart = lastRound ? lastRound.range[1] + 1 : 1;
+    const newRound: Round = {
+      title: `Round ${rounds.length + 1}`,
+      range: [newStart, newStart + 10],
+    };
+    onUpdateRounds(activeBatchId, [...rounds, newRound]);
+  };
+
+  const deleteRound = async (idx: number) => {
+    if (!activeBatchId) return;
+    const ok = await dialog.confirm({
+      title: "Delete Round",
+      message:
+        "Delete this round? Questions in this range will remain but won't belong to a round.",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
+    onUpdateRounds(activeBatchId, rounds.filter((_, i) => i !== idx));
+  };
+
   const startEdit = (q: Question) => {
     setEditingId(q.id);
-    setEditForm({ ...q, id: q.id }); // Ensure ID is part of form
   };
 
-  const saveEdit = () => {
-    if (editingId && editForm.text && editForm.answer && editForm.id) {
-      try {
-        onEdit(editingId, {
-          id: Number(editForm.id),
-          text: editForm.text,
-          answer: editForm.answer,
-        });
-        setEditingId(null);
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Failed to save question.");
-      }
-    }
-  };
-
-  const handleAdd = () => {
-    if (addForm.text && addForm.answer) {
-      let specificId = undefined;
-      if (enableRounds && addForm.roundIdx !== -1) {
-        specificId = getNextIdInRound(addForm.roundIdx);
-        if (!specificId) {
-          alert("That round is full! adjusting range or picking another.");
-          return;
-        }
-      }
-
-      onAdd(
-        {
-          text: addForm.text,
-          answer: addForm.answer,
-          mediaType: addForm.mediaType,
-          mediaUrl: addForm.mediaUrl,
-        },
-        specificId,
+  const saveEdit = (data: {
+    id?: number;
+    text: string;
+    answer: string;
+    mediaType?: "image" | "audio";
+    mediaUrl?: string;
+  }) => {
+    if (data.id === undefined || !data.text || !data.answer) return;
+    try {
+      onEdit(data.id, {
+        id: data.id,
+        text: data.text,
+        answer: data.answer,
+        mediaType: data.mediaType,
+        mediaUrl: data.mediaUrl,
+      });
+      setEditingId(null);
+    } catch (err) {
+      dialog.toast(
+        "error",
+        "Could not save question",
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
-      setIsAdding(false);
-      setAddForm({ text: "", answer: "", roundIdx: -1 });
-      setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 100);
     }
+  };
+
+  const handleAdd = (form: {
+    text: string;
+    answer: string;
+    mediaType?: "image" | "audio";
+    mediaUrl?: string;
+    roundIdx: number;
+  }) => {
+    if (!form.text || !form.answer) return;
+    let specificId: number | undefined = undefined;
+    if (enableRounds && form.roundIdx !== -1) {
+      specificId = getNextIdInRound(form.roundIdx);
+      if (!specificId) {
+        dialog.toast(
+          "warning",
+          "That round is full",
+          "Adjust the round range or pick another round.",
+        );
+        return;
+      }
+    }
+
+    onAdd(
+      {
+        text: form.text,
+        answer: form.answer,
+        mediaType: form.mediaType,
+        mediaUrl: form.mediaUrl,
+      },
+      specificId,
+    );
+    setIsAdding(false);
+    setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 100);
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Batch Management */}
+      <div className="p-4 md:p-5 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm">
+        <div className="mb-3">
+          <h4 className="text-sm font-bold text-[rgb(var(--text-primary))] uppercase tracking-wider flex items-center gap-2">
+            <ListChecks size={16} className="text-[rgb(var(--color-primary))]" /> Question Batches
+          </h4>
+          <p className="text-xs text-[rgb(var(--text-secondary))] mt-1">
+            Keep several question sets ready. The grid shows the active batch only.
+          </p>
+        </div>
+
+        {/* Batch selector and controls */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {batches.map((batch) => (
+            <div
+              key={batch.id}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg border text-sm transition-all ${
+                activeBatchId === batch.id
+                  ? "tint-bg border-[rgb(var(--color-primary))]/40 text-[rgb(var(--color-primary))] font-bold"
+                  : "bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:border-[rgb(var(--color-primary))]/30"
+              }`}
+            >
+              {editingBatchId === batch.id ? (
+                <input
+                  type="text"
+                  value={editingBatchName}
+                  onChange={(e) => setEditingBatchName(e.target.value)}
+                  onBlur={() => {
+                    if (editingBatchName.trim()) {
+                      onRenameBatch(batch.id, editingBatchName.trim());
+                    }
+                    setEditingBatchId(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      if (editingBatchName.trim()) {
+                        onRenameBatch(batch.id, editingBatchName.trim());
+                      }
+                      setEditingBatchId(null);
+                    }
+                    if (e.key === "Escape") setEditingBatchId(null);
+                  }}
+                  className="bg-transparent border-b border-[rgb(var(--color-primary))] outline-none text-sm w-24"
+                  autoFocus
+                />
+              ) : (
+                <button
+                  onClick={() => onSetActiveBatch(batch.id)}
+                  onDoubleClick={() => {
+                    setEditingBatchId(batch.id);
+                    setEditingBatchName(batch.name);
+                  }}
+                  className="cursor-pointer"
+                >
+                  {batch.name}
+                  <span className="ml-1 opacity-50">({batch.questions.length})</span>
+                </button>
+              )}
+              <button
+                onClick={() => onExportBatch(batch.id)}
+                className="p-0.5 hover:bg-[var(--fill)] rounded text-[rgb(var(--text-secondary))]"
+                title="Export batch"
+              >
+                <Download size={12} />
+              </button>
+              <button
+                onClick={() => {
+                  setImportTargetId(batch.id);
+                  importInputRef.current?.click();
+                }}
+                className="p-0.5 hover:bg-[var(--fill)] rounded text-[rgb(var(--text-secondary))]"
+                title="Import questions into this batch"
+              >
+                <Upload size={12} />
+              </button>
+              {batches.length > 1 && (
+                <button
+                  onClick={async () => {
+                    const ok = await dialog.confirm({
+                      title: "Delete Batch",
+                      message: `Delete the batch "${batch.name}" and its ${batch.questions.length} questions?`,
+                      confirmLabel: "Delete",
+                      cancelLabel: "Keep Batch",
+                      danger: true,
+                    });
+                    if (ok) onDeleteBatch(batch.id);
+                  }}
+                  className="p-0.5 hover:bg-[rgb(var(--danger))]/15 rounded text-[rgb(var(--danger))]"
+                  title="Delete batch"
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
+          ))}
+
+          {/* Create batch */}
+          <div className="flex items-center gap-1">
+            <input
+              type="text"
+              placeholder="New batch name..."
+              value={newBatchName}
+              onChange={(e) => setNewBatchName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newBatchName.trim()) {
+                  onCreateBatch(newBatchName.trim());
+                  setNewBatchName("");
+                }
+              }}
+              className="ios-input px-3 py-1.5 text-sm w-36"
+            />
+            <button
+              onClick={() => {
+                if (newBatchName.trim()) {
+                  onCreateBatch(newBatchName.trim());
+                  setNewBatchName("");
+                }
+              }}
+              disabled={!newBatchName.trim()}
+              className="px-2 py-1.5 bg-[rgb(var(--color-primary))] text-[rgb(var(--label-inverse))] rounded-lg text-sm font-bold disabled:opacity-40"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+        </div>
+
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (file && importTargetId) {
+              const text = await file.text();
+              onImportIntoBatch(text, importTargetId);
+            }
+            setImportTargetId(null);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      {/* Rounds Configuration (per active batch) */}
+      <SectionTitle title="Rounds Configuration" />
+      <div className="rounded-xl overflow-hidden bg-[var(--card-bg)] border border-[var(--card-border)] divide-y divide-[var(--separator)] shadow-sm mb-3">
+        <Toggle
+          label="Enable Round Grouping"
+          checked={enableRounds}
+          onChange={(c) => activeBatchId && onSetEnableRounds(activeBatchId, c)}
+        />
+      </div>
+      {enableRounds && (
+        <button
+          onClick={addRound}
+          className="mb-4 text-sm px-3 py-1.5 bg-[rgb(var(--success))]/15 text-[rgb(var(--success))] rounded-lg hover:bg-[rgb(var(--success))]/40 flex items-center gap-1 font-bold transition-colors"
+        >
+          <Plus size={14} /> Add Round
+        </button>
+      )}
+
+      {enableRounds && (
+        <div className="space-y-4 mt-2">
+          {rounds.map((round, idx) => (
+            <div
+              key={idx}
+              className="p-4 rounded bg-[var(--card-bg)] border border-[var(--card-border)] flex flex-col gap-4 relative group shadow-sm"
+            >
+              <div className="flex justify-between items-start">
+                <h4 className="text-sm font-bold text-[rgb(var(--text-secondary))]">
+                  Round {idx + 1}
+                </h4>
+                <button
+                  onClick={() => deleteRound(idx)}
+                  className="p-1 text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger))]/15 rounded md:opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputGroup
+                  label="Title"
+                  value={round.title}
+                  onChange={(v) => handleRoundUpdate(idx, "title", v)}
+                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <InputGroup
+                      type="number"
+                      label="Start ID"
+                      value={round.range[0]}
+                      onChange={(v) =>
+                        handleRoundUpdate(idx, "range", [
+                          Number(v),
+                          round.range[1],
+                        ])
+                      }
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <InputGroup
+                      type="number"
+                      label="End ID"
+                      value={round.range[1]}
+                      onChange={(v) =>
+                        handleRoundUpdate(idx, "range", [
+                          round.range[0],
+                          Number(v),
+                        ])
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Question List Header */}
       <div className="flex justify-between items-center">
         <SectionTitle title={`Questions (${questions.length})`} />
         <button
@@ -997,155 +1326,17 @@ function QuestionManager({
       </div>
 
       {isAdding && (
-        <div className="p-4 mb-4 rounded-lg bg-[rgb(var(--success))]/10 border border-[rgb(var(--success))]/30 animate-scale-in">
-          <h4 className="font-bold text-[rgb(var(--success))] mb-2">New Question</h4>
-          <div className="space-y-3">
-            {enableRounds && (
-              <select
-                value={addForm.roundIdx}
-                onChange={(e) =>
-                  setAddForm((prev) => ({
-                    ...prev,
-                    roundIdx: Number(e.target.value),
-                  }))
-                }
-                className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
-              >
-                <option value={-1}>Auto-Assign Round / ID</option>
-                {rounds.map((r, idx) => (
-                  <option key={idx} value={idx}>
-                    {r.title} ({r.range[0]}-{r.range[1]})
-                  </option>
-                ))}
-              </select>
-            )}
-            <textarea
-              placeholder="Question Text"
-              className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
-              rows={2}
-              value={addForm.text}
-              onChange={(e) =>
-                setAddForm((prev) => ({ ...prev, text: e.target.value }))
-              }
-            />
-            <input
-              type="text"
-              placeholder="Answer"
-              className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
-              value={addForm.answer}
-              onChange={(e) =>
-                setAddForm((prev) => ({ ...prev, answer: e.target.value }))
-              }
-            />
-
-            {/* Media Inputs */}
-            <div className="flex flex-col gap-2 p-3 rounded bg-[var(--fill)] border border-[var(--card-border)]">
-              <label className="text-xs uppercase font-bold text-[rgb(var(--text-secondary))]">
-                Attachment (Optional)
-              </label>
-              <div className="flex gap-2">
-                <select
-                  className="bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))] text-sm"
-                  value={addForm.mediaType || ""}
-                  onChange={(e) =>
-                    setAddForm((prev) => ({
-                      ...prev,
-                      mediaType: e.target.value as
-                        | "image"
-                        | "audio"
-                        | undefined,
-                    }))
-                  }
-                >
-                  <option value="">No Media</option>
-                  <option value="image">Image</option>
-                  <option value="audio">Audio</option>
-                </select>
-
-                {addForm.mediaType && (
-                  <div className="flex-1 flex gap-2">
-                    <input
-                      type="text"
-                      placeholder={
-                        addForm.mediaType === "image"
-                          ? "Image URL or Path"
-                          : "Audio URL or Path"
-                      }
-                      className="flex-1 bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))] text-sm"
-                      value={addForm.mediaUrl || ""}
-                      onChange={(e) =>
-                        setAddForm((prev) => ({
-                          ...prev,
-                          mediaUrl: e.target.value,
-                        }))
-                      }
-                    />
-                    <label className="cursor-pointer px-3 py-2 bg-[rgb(var(--color-primary))]/20 hover:bg-[rgb(var(--color-primary))]/40 text-[rgb(var(--color-primary))] rounded text-xs font-bold flex items-center gap-1 whitespace-nowrap">
-                      <Upload size={14} /> Upload File
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept={
-                          addForm.mediaType === "image" ? "image/*" : "audio/*"
-                        }
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-
-                          if (addForm.mediaType === "audio") {
-                            // Audio Compression Logic
-                            try {
-                              const compressed = await compressAudio(file);
-                              setAddForm((prev) => ({
-                                ...prev,
-                                mediaUrl: compressed,
-                              }));
-                            } catch (err) {
-                              alert("Failed to process audio");
-                              console.error(err);
-                            }
-                          } else {
-                            // Image Compression Logic
-                            try {
-                              const compressed = await compressImage(file);
-                              setAddForm((prev) => ({
-                                ...prev,
-                                mediaUrl: compressed,
-                              }));
-                            } catch (err) {
-                              alert("Failed to process image");
-                              console.error(err);
-                            }
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                )}
-              </div>
-              {addForm.mediaUrl && (
-                <p className="text-[10px] text-[rgb(var(--text-secondary))] truncate">
-                  Source: {addForm.mediaUrl.substring(0, 50)}...
-                </p>
-              )}
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setIsAdding(false)}
-                className="px-3 py-1 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAdd}
-                className="px-3 py-1 bg-[rgb(var(--success))] text-white rounded text-sm font-bold hover:bg-[rgb(var(--success))]"
-              >
-                Save Question
-              </button>
-            </div>
-          </div>
-        </div>
+        <QuestionEditorForm
+          title="New Question"
+          initial={{}}
+          initialRoundIdx={-1}
+          rounds={rounds}
+          enableRounds={enableRounds}
+          submitLabel="Save Question"
+          accent="success"
+          onSubmit={handleAdd}
+          onCancel={() => setIsAdding(false)}
+        />
       )}
 
       <div className="space-y-2">
@@ -1154,7 +1345,7 @@ function QuestionManager({
           return (
             <div
               key={q.id}
-              className="p-3 md:p-4 rounded-lg bg-[var(--fill)] border border-[var(--card-border)] hover:border-[var(--card-border)] transition-colors flex flex-col md:flex-row gap-4 items-start group"
+              className="p-3 md:p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-[rgb(var(--color-primary))]/30 hover:shadow-sm transition-all flex flex-col md:flex-row gap-4 items-start group"
             >
               <div className="flex items-center gap-2 w-full md:w-auto">
                 <div className="font-mono text-[rgb(var(--text-secondary))] w-8 shrink-0">
@@ -1168,61 +1359,27 @@ function QuestionManager({
               </div>
 
               {editingId === q.id ? (
-                <div className="flex-1 space-y-2 w-full">
-                  <div className="flex gap-2 items-center">
-                    <label className="text-xs text-[rgb(var(--text-secondary))]">ID:</label>
-                    <input
-                      type="number"
-                      className="bg-[var(--fill)] border border-[var(--card-border)] rounded p-1 text-[rgb(var(--text-primary))] w-20"
-                      value={editForm.id}
-                      onChange={(e) =>
-                        setEditForm((prev) => ({
-                          ...prev,
-                          id: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </div>
-                  <textarea
-                    className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
-                    value={editForm.text}
-                    onChange={(e) =>
-                      setEditForm((prev) => ({ ...prev, text: e.target.value }))
-                    }
+                <div className="flex-1 w-full">
+                  <QuestionEditorForm
+                    title={`Edit Question #${q.id}`}
+                    initial={q}
+                    initialRoundIdx={getRoundIdxForId(q.id)}
+                    rounds={rounds}
+                    enableRounds={enableRounds}
+                    submitLabel="Save Changes"
+                    accent="primary"
+                    onSubmit={saveEdit}
+                    onCancel={() => setEditingId(null)}
                   />
-                  <input
-                    className="w-full bg-[var(--fill)] border border-[var(--card-border)] rounded p-2 text-[rgb(var(--text-primary))]"
-                    value={editForm.answer}
-                    onChange={(e) =>
-                      setEditForm((prev) => ({
-                        ...prev,
-                        answer: e.target.value,
-                      }))
-                    }
-                  />
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={saveEdit}
-                      className="flex items-center gap-1 px-3 py-1 bg-[rgb(var(--success))]/15 text-[rgb(var(--success))] rounded hover:bg-[rgb(var(--success))]/40"
-                    >
-                      <Check size={14} /> Save
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="flex items-center gap-1 px-3 py-1 bg-[rgb(var(--danger))]/15 text-[rgb(var(--danger))] rounded hover:bg-[rgb(var(--danger))]/40"
-                    >
-                      <X size={14} /> Cancel
-                    </button>
-                  </div>
                 </div>
               ) : (
                 <>
-                  <div className="flex-1 min-w-0 md:border-l md:border-[var(--card-border)] md:pl-4">
+                  <div className="flex-1 min-w-0 md:border-l md:border-[var(--separator)] md:pl-4">
                     <p className="font-medium text-[rgb(var(--text-primary))] mb-1 break-words">
                       {q.text}
                     </p>
-                    <p className="text-sm text-[rgb(var(--success))] font-mono break-words">
-                      {q.answer}
+                    <p className="text-xs md:text-sm text-[rgb(var(--text-secondary))] font-mono break-words">
+                      Ans: {q.answer}
                     </p>
                     {round && (
                       <div className="hidden md:inline-block mt-2 text-xs px-2 py-0.5 rounded-full bg-[var(--card-bg)] text-[rgb(var(--text-secondary))] border border-[var(--card-border)]">
@@ -1238,10 +1395,17 @@ function QuestionManager({
                       <Edit2 size={16} />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Delete Question ${q.id}?`)) onDelete(q.id);
+                      onClick={async () => {
+                        const ok = await dialog.confirm({
+                          title: "Delete Question",
+                          message: `Delete question ${q.id}? This cannot be undone.`,
+                          confirmLabel: "Delete",
+                          cancelLabel: "Keep Question",
+                          danger: true,
+                        });
+                        if (ok) onDelete(q.id);
                       }}
-                      className="p-2 hover:bg-[rgb(var(--danger))]/15 text-[rgb(var(--danger))] rounded"
+                      className="p-2 hover:bg-[rgb(var(--danger))]/15 text-[rgb(var(--danger))] rounded-lg"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -1256,27 +1420,245 @@ function QuestionManager({
   );
 }
 
+function QuestionEditorForm({
+  title,
+  initial,
+  initialRoundIdx,
+  rounds,
+  enableRounds,
+  submitLabel,
+  accent,
+  onSubmit,
+  onCancel,
+}: {
+  title: string;
+  initial: Partial<Question>;
+  initialRoundIdx: number;
+  rounds: Round[];
+  enableRounds: boolean;
+  submitLabel: string;
+  accent: "success" | "primary";
+  onSubmit: (data: {
+    id?: number;
+    text: string;
+    answer: string;
+    mediaType?: "image" | "audio";
+    mediaUrl?: string;
+    roundIdx: number;
+  }) => void;
+  onCancel: () => void;
+}) {
+  const dialog = useDialog();
+  const [form, setForm] = useState({
+    text: initial.text ?? "",
+    answer: initial.answer ?? "",
+    mediaType: (initial.mediaType ?? "") as "" | "image" | "audio",
+    mediaUrl: initial.mediaUrl ?? "",
+    roundIdx: initialRoundIdx,
+  });
+
+  const accentText =
+    accent === "success"
+      ? "text-[rgb(var(--success))]"
+      : "text-[rgb(var(--color-primary))]";
+  const accentBorder =
+    accent === "success"
+      ? "border-[rgb(var(--success))]/30 bg-[rgb(var(--success))]/10"
+      : "border-[rgb(var(--color-primary))]/30 bg-[rgb(var(--color-primary))]/10";
+
+  const handleFile = async (file: File) => {
+    try {
+      if (form.mediaType === "audio") {
+        const compressed = await compressAudio(file);
+        setForm((p) => ({ ...p, mediaUrl: compressed }));
+      } else if (form.mediaType === "image") {
+        const compressed = await compressImage(file);
+        setForm((p) => ({ ...p, mediaUrl: compressed }));
+      }
+    } catch (err) {
+      dialog.toast("error", "Could not process file", "Please try another file.");
+      console.error(err);
+    }
+  };
+
+  const canSubmit = form.text.trim() !== "" && form.answer.trim() !== "";
+
+  return (
+    <div
+      className={`p-4 md:p-5 mb-4 rounded-xl border animate-scale-in ${accentBorder}`}
+    >
+      <h4 className={`font-bold mb-3 flex items-center gap-2 ${accentText}`}>
+        <Edit2 size={16} /> {title}
+      </h4>
+      <div className="space-y-3">
+        {enableRounds && (
+          <div>
+            <label className="block text-xs uppercase font-bold text-[rgb(var(--text-secondary))] mb-1.5">
+              Round
+            </label>
+            <select
+              value={form.roundIdx}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, roundIdx: Number(e.target.value) }))
+              }
+              className="w-full ios-input px-3 py-2"
+            >
+              <option value={-1}>Auto-Assign Round / ID</option>
+              {rounds.map((r, idx) => (
+                <option key={idx} value={idx}>
+                  {r.title} ({r.range[0]}-{r.range[1]})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-xs uppercase font-bold text-[rgb(var(--text-secondary))] mb-1.5">
+            Question Text
+          </label>
+          <textarea
+            placeholder="Type the question..."
+            className="w-full ios-input px-3 py-2"
+            rows={2}
+            value={form.text}
+            onChange={(e) => setForm((p) => ({ ...p, text: e.target.value }))}
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs uppercase font-bold text-[rgb(var(--text-secondary))] mb-1.5">
+            Answer
+          </label>
+          <input
+            type="text"
+            placeholder="Type the correct answer..."
+            className="w-full ios-input px-3 py-2"
+            value={form.answer}
+            onChange={(e) => setForm((p) => ({ ...p, answer: e.target.value }))}
+          />
+        </div>
+
+        {/* Media Inputs */}
+        <div className="flex flex-col gap-2 p-3 rounded bg-[var(--fill)] border border-[var(--card-border)]">
+          <label className="text-xs uppercase font-bold text-[rgb(var(--text-secondary))]">
+            Attachment (Optional)
+          </label>
+          <div className="flex gap-2">
+            <select
+              className="ios-input px-2 py-2 text-sm"
+              value={form.mediaType}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  mediaType: e.target.value as "" | "image" | "audio",
+                  mediaUrl: e.target.value === "" ? "" : p.mediaUrl,
+                }))
+              }
+            >
+              <option value="">No Media</option>
+              <option value="image">Image</option>
+              <option value="audio">Audio</option>
+            </select>
+
+            {form.mediaType && (
+              <div className="flex-1 flex gap-2">
+                <input
+                  type="text"
+                  placeholder={
+                    form.mediaType === "image"
+                      ? "Image URL or Path"
+                      : "Audio URL or Path"
+                  }
+                  className="flex-1 ios-input px-3 py-2 text-sm"
+                  value={form.mediaUrl}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, mediaUrl: e.target.value }))
+                  }
+                />
+                <label className="cursor-pointer px-3 py-2 bg-[rgb(var(--color-primary))]/20 hover:bg-[rgb(var(--color-primary))]/40 text-[rgb(var(--color-primary))] rounded text-xs font-bold flex items-center gap-1 whitespace-nowrap">
+                  <Upload size={14} /> Upload File
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept={
+                      form.mediaType === "image" ? "image/*" : "audio/*"
+                    }
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) await handleFile(file);
+                    }}
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+          {form.mediaUrl && (
+            <p className="text-[10px] text-[rgb(var(--text-secondary))] truncate">
+              Source: {form.mediaUrl.substring(0, 50)}
+              {form.mediaUrl.length > 50 ? "..." : ""}
+            </p>
+          )}
+        </div>
+
+        <div className="flex gap-2 justify-end pt-1">
+          <button
+            onClick={onCancel}
+            className="px-3 py-1.5 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] rounded-lg hover:bg-[var(--fill)] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() =>
+              onSubmit({
+                id: initial.id,
+                ...form,
+                mediaType: form.mediaType === "" ? undefined : form.mediaType,
+                mediaUrl: form.mediaUrl.trim() === "" ? undefined : form.mediaUrl,
+              })
+            }
+            disabled={!canSubmit}
+            className="px-4 py-1.5 bg-[rgb(var(--success))] text-white rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-40 transition-all"
+          >
+            {submitLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DataActions({
   onReset,
   onImport,
   onExport,
   config,
   questions,
+  batches,
 }: {
   onReset: () => void;
   onImport: (jsonData: string) => boolean;
   onExport: () => void;
   config: AppConfig;
   questions: Question[];
+  batches: QuestionBatch[];
 }) {
   const [fileName, setFileName] = useState("sajilo-quiz-data");
   const [showSample, setShowSample] = useState(false);
+  const dialog = useDialog();
 
   const handleDownload = () => {
     const name = fileName.endsWith(".json") ? fileName : `${fileName}.json`;
+    const data = {
+      config,
+      questions,
+      ...(batches.length > 0 ? { batches } : {}),
+      version: "2.0.0",
+      timestamp: new Date().toISOString(),
+    };
     const dataStr =
       "data:text/json;charset=utf-8," +
-      encodeURIComponent(JSON.stringify({ config, questions }, null, 2));
+      encodeURIComponent(JSON.stringify(data, null, 2));
     const downloadAnchorNode = document.createElement("a");
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", name);
@@ -1292,8 +1674,15 @@ function DataActions({
     reader.onload = (evt) => {
       if (evt.target?.result && typeof evt.target.result === "string") {
         const success = onImport(evt.target.result);
-        if (success) alert("Data Imported Successfully!");
-        else alert("Failed to import data. Check file format.");
+        if (success) {
+          dialog.toast("success", "Data imported", "Your backup was restored successfully.");
+        } else {
+          dialog.toast(
+            "error",
+            "Import failed",
+            "The file format does not look like a Sajilo Quiz backup.",
+          );
+        }
       }
     };
     reader.readAsText(file);
@@ -1302,61 +1691,82 @@ function DataActions({
   const SAMPLE_JSON = `{
   "config": {
     "appName": "My Quiz",
-    "rounds": [
-      { "title": "Round 1", "range": [1, 10] }
-    ],
+    "enableRounds": false,
     ...
   },
   "questions": [
     { "id": 1, "text": "What is 2+2?", "answer": "4" }
+  ],
+  "batches": [
+    {
+      "id": "1720000000000",
+      "name": "Default",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "questions": [],
+      "enableRounds": true,
+      "rounds": [
+        { "title": "Round 1", "range": [1, 10] }
+      ]
+    }
   ]
 }`;
 
-  // Calculate Storage Usage
-  const [usage, setUsage] = useState({ used: 0, percent: 0 });
+  // Calculate Storage Usage (IndexedDB / browser-quota based)
+  const [usage, setUsage] = useState({ used: 0, available: 0 });
   useEffect(() => {
-    const calculateUsage = () => {
-      let total = 0;
-      for (let key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-          total += localStorage[key].length * 2; // 2 bytes per char
+    const calculateUsage = async () => {
+      try {
+        if (navigator.storage?.estimate) {
+          const estimate = await navigator.storage.estimate();
+          const used = estimate.usage ?? 0;
+          const quota = estimate.quota ?? 0;
+          setUsage({ used, available: quota });
+        } else {
+          setUsage({ used: 0, available: 0 });
         }
+      } catch {
+        setUsage({ used: 0, available: 0 });
       }
-      const usedMB = total / 1024 / 1024;
-      // Assuming 5MB limit for safe cross-browser estimation
-      const percent = Math.min((usedMB / 5) * 100, 100);
-      setUsage({ used: usedMB, percent });
     };
     calculateUsage();
-    // Recalculate periodically or on render
-    const interval = setInterval(calculateUsage, 2000);
+    const interval = setInterval(calculateUsage, 3000);
     return () => clearInterval(interval);
-  }, [questions, config]); // Re-run when data changes
+  }, []); // Re-run when data changes
 
   return (
     <div className="space-y-8 animate-fade-in">
       <SectionTitle title="Backup & Restore" />
 
       {/* Storage Indicator */}
-      <div className="p-4 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm">
+      <div className="p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm">
         <div className="flex justify-between text-xs mb-2 text-[rgb(var(--text-secondary))] font-bold">
-          <span className="uppercase tracking-wider">Browser Storage Left</span>
-          <span>{usage.used.toFixed(2)} MB used / ~5.00 MB limit</span>
+          <span className="uppercase tracking-wider">Browser Storage Used</span>
+          <span>
+            {usage.available > 0
+              ? `${(usage.used / 1024 / 1024).toFixed(2)} MB used / ${(usage.available / 1024 / 1024).toFixed(0)} MB available`
+              : (usage.used / 1024 / 1024).toFixed(2) + " MB used"}
+          </span>
         </div>
         <div className="w-full bg-[var(--fill)] h-3 rounded-full overflow-hidden border border-[var(--card-border)]">
           <div
-            className={`h-full transition-all duration-500 ${usage.percent > 90 ? "bg-[rgb(var(--warning))]" : usage.percent > 70 ? "bg-[rgb(var(--warning))]" : "bg-[rgb(var(--success))]"}`}
-            style={{ width: `${usage.percent}%` }}
+            className={`h-full transition-all duration-500 ${usage.available > 0 && usage.used / usage.available > 0.9 ? "bg-[rgb(var(--danger))]" : usage.available > 0 && usage.used / usage.available > 0.7 ? "bg-[rgb(var(--warning))]" : "bg-[rgb(var(--success))]"}`}
+            style={{
+              width: `${
+                usage.available > 0
+                  ? Math.min((usage.used / usage.available) * 100, 100)
+                  : 0
+              }%`,
+            }}
           />
         </div>
         <p className="text-[10px] text-[rgb(var(--text-secondary))] mt-2">
-          *Limit depends on the browser (usually 5MB-10MB). For large media,
-          please put files in the <code>/public</code> folder and use relative
-          paths.
+          Data is saved in your browser's private IndexedDB storage. For large
+          media, please put files in the <code>/public</code> folder and use
+          relative paths.
         </p>
       </div>
 
-      <div className="p-4 rounded-lg bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/20">
+      <div className="p-4 md:p-5 rounded-xl bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/20">
         <h4 className="font-bold text-[rgb(var(--color-primary))] mb-4 flex items-center gap-2">
           <Download size={18} /> Export Data
         </h4>
@@ -1383,7 +1793,7 @@ function DataActions({
         </div>
       </div>
 
-      <div className="p-4 rounded-lg bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/20">
+      <div className="p-4 md:p-5 rounded-xl bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/20">
         <h4 className="font-bold text-[rgb(var(--color-primary))] mb-4 flex items-center gap-2">
           <Upload size={18} /> Import Data
         </h4>
@@ -1414,7 +1824,7 @@ function DataActions({
         </div>
       </div>
 
-      <div className="p-4 rounded-lg bg-[rgb(var(--warning))]/10 border border-[rgb(var(--danger))]/20">
+      <div className="p-4 rounded-xl bg-[rgb(var(--warning))]/10 border border-[rgb(var(--danger))]/20">
         <button
           onClick={onReset}
           className="w-full md:w-auto px-4 py-2 bg-[rgb(var(--danger))]/15 hover:bg-[rgb(var(--danger))]/40 text-[rgb(var(--danger))] rounded flex items-center justify-center gap-2 transition-colors"
@@ -1458,6 +1868,8 @@ function HelpGuide() {
               keyBind="Alt + Click"
               action="Re-open Visited Question"
             />
+            <ShortcutItem keyBind="R" action="Random Unvisited Question" />
+            <ShortcutItem keyBind="X" action="Snap Away Visited Questions" />
           </div>
         </div>
 
@@ -1471,6 +1883,7 @@ function HelpGuide() {
             <ShortcutItem keyBind="Q" action="Quick Peek Overview" />
             <ShortcutItem keyBind="T" action="Start / Pause Timer" />
             <ShortcutItem keyBind="R" action="Reset Timer" />
+            <ShortcutItem keyBind="M" action="Mark / Unmark Question" />
             <ShortcutItem keyBind="] or +" action="Increase Text Size" />
             <ShortcutItem keyBind="[ or -" action="Decrease Text Size" />
             <ShortcutItem keyBind="0" action="Reset Text Size" />
@@ -1482,12 +1895,12 @@ function HelpGuide() {
       <ul className="space-y-2 list-disc pl-5">
         <li>
           <strong className="text-[rgb(var(--text-primary))]">Theme:</strong>{" "}
-          Customize your app's look in Admin → Theme. Choose from 6 color
+          Customize your app's look in the Theme tab. Choose from 11 color
           schemes and light/dark modes.
         </li>
         <li>
           <strong className="text-[rgb(var(--text-primary))]">Sounds:</strong>{" "}
-          Control all sound effects in Admin → Sounds. Each sound can be toggled
+          Control all sound effects in the Sounds tab. Each sound can be toggled
           individually.
         </li>
         <li>
@@ -1524,165 +1937,77 @@ function HelpGuide() {
 
 function AboutCompany() {
   return (
-    <div className="space-y-12">
-      {/* Header / Brand */}
-      <div className="text-center space-y-4">
-        <div className="inline-flex items-center justify-center mb-2">
-          <img
-            src="/company.png"
-            alt="Sajilo Digital Logo"
-            className="w-24 h-24 object-contain shadow-[0_0_30px_rgba(var(--color-primary),0.3)] rounded-2xl p-2 bg-[var(--fill)] border border-[var(--card-border)]"
-          />
-        </div>
-        <h2 className="text-4xl font-extrabold title-gradient italic tracking-tight">
+    <div className="space-y-8">
+      {/* Brand */}
+      <div className="text-center space-y-3">
+        <img
+          src="/company.png"
+          alt="Sajilo Digital Logo"
+          className="w-20 h-20 object-contain rounded-2xl p-2 bg-[var(--fill)] border border-[var(--card-border)] mx-auto"
+        />
+        <h2 className="text-3xl font-extrabold title-gradient italic tracking-tight">
           Sajilo Digital
         </h2>
-        <p className="text-[rgb(var(--color-primary))] font-medium tracking-[0.2em] uppercase text-sm">
+        <p className="text-[rgb(var(--color-primary))] font-medium tracking-[0.2em] uppercase text-xs">
           Your Vision, Our Innovation
         </p>
-        <div className="max-w-2xl mx-auto p-6 rounded-xl bg-[var(--fill)] border border-[var(--card-border)] backdrop-blur-md">
-          <p className="text-[rgb(var(--text-secondary))] italic leading-relaxed text-sm">
-            "We build technologies that lasts forever."
+        <p className="max-w-xl mx-auto text-[rgb(var(--text-secondary))] italic text-sm leading-relaxed">
+          We build technologies that last forever. Sajilo Quiz is crafted with
+          care for every host, in every corner of Nepal, and works fully
+          offline with privacy at its core.
+        </p>
+      </div>
+
+      {/* Maker credit */}
+      <div className="p-6 rounded-xl glass-panel flex flex-col md:flex-row items-center gap-5">
+        <div className="p-3 rounded-full bg-[rgb(var(--color-primary))]/20 border border-[rgb(var(--color-primary))]/30 shrink-0">
+          <User size={28} className="text-[rgb(var(--color-primary))]" />
+        </div>
+        <div className="text-center md:text-left">
+          <h3 className="text-xl font-bold text-[rgb(var(--text-primary))]">
+            Arun Neupane
+          </h3>
+          <p className="text-[rgb(var(--color-primary))] font-bold uppercase tracking-wider text-[10px] mt-0.5 mb-2">
+            Chief Technology Officer &amp; Lead Designer
+          </p>
+          <p className="text-[rgb(var(--text-secondary))] text-sm max-w-xl leading-relaxed">
+            The architect behind Sajilo Quiz, blending aesthetic excellence with
+            a high-performance, privacy-first app that runs entirely on-device.
           </p>
         </div>
       </div>
 
-      {/* Designer / CTO Credit */}
-      <div className="p-[1px] rounded-2xl bg-gradient-to-br from-[rgb(var(--color-primary))]/30 via-transparent to-transparent">
-        <div className="glass-panel p-8 bg-gradient-to-br from-[rgb(var(--color-primary))]/10 to-transparent">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="p-4 rounded-full bg-[rgb(var(--color-primary))]/20 border border-[rgb(var(--color-primary))]/30 shadow-[0_0_20px_rgba(var(--color-primary),0.15)]">
-              <User size={40} className="text-[rgb(var(--color-primary))]" />
-            </div>
-            <div className="text-center md:text-left">
-              <h3 className="text-2xl font-bold text-[rgb(var(--text-primary))] mb-1">
-                Arun Neupane
-              </h3>
-              <p className="text-[rgb(var(--color-primary))] font-bold uppercase tracking-wider text-[10px] mb-3">
-                Chief Technology Officer & Lead Designer
-              </p>
-              <p className="text-[rgb(var(--text-secondary))] text-sm max-w-xl leading-relaxed">
-                The architect behind the visual identity and technological
-                framework of this application. Focused on blending aesthetic
-                excellence with high-performance ecosystem architecture.
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Contact */}
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="https://sajilodigital.com.np"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2.5 rounded-xl bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/30 hover:bg-[rgb(var(--color-primary))]/20 text-[rgb(var(--text-primary))] text-sm font-semibold inline-flex items-center gap-2 transition-all"
+        >
+          Visit Website
+          <ExternalLink size={15} />
+        </a>
+        <a
+          href="mailto:info@sajilodigital.com.np?subject=SajiloQuiz"
+          className="px-4 py-2.5 rounded-xl bg-[var(--fill)] border border-[var(--card-border)] hover:border-[rgb(var(--color-primary))]/40 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] text-sm inline-flex items-center gap-2 transition-all"
+        >
+          <Mail size={15} />
+          info@sajilodigital.com.np
+        </a>
+        <a
+          href="https://github.com/sajhilodigital"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-2.5 rounded-xl bg-[var(--fill)] border border-[var(--card-border)] hover:border-[rgb(var(--color-primary))]/40 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-all inline-flex"
+          aria-label="Sajilo Digital on GitHub"
+        >
+          <Github size={15} />
+        </a>
       </div>
 
-      {/* Services Grid */}
-      <div className="space-y-6">
-        <h3 className="text-xl font-bold text-[rgb(var(--text-primary))] flex items-center gap-3">
-          <Sparkles className="text-[rgb(var(--color-primary))]" />
-          Core Capabilities
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <ServiceCard
-            icon={<Code size={20} />}
-            title="Web Ecosystems"
-            desc="Architecting scalable full-stack applications with sub-second latency."
-          />
-          <ServiceCard
-            icon={<Smartphone size={20} />}
-            title="Mobile Interface"
-            desc="Developing cross-platform experiences that feel native to the core."
-          />
-          <ServiceCard
-            icon={<Sparkles size={20} />}
-            title="Neural UX/UI"
-            desc="Designing human-centric interfaces optimized for subconscious flow."
-          />
-          <ServiceCard
-            icon={<Search size={20} />}
-            title="Index Mastery"
-            desc="Dominating search rankings through algorithmic precision and optimization."
-          />
-          <ServiceCard
-            icon={<ShoppingBag size={20} />}
-            title="Commerce Logic"
-            desc="Building frictionless global storefronts that maximize conversion throughput."
-          />
-          <ServiceCard
-            icon={<BarChart3 size={20} />}
-            title="Market Intelligence"
-            desc="Data-driven marketing strategies to amplify brand signal globally."
-          />
-        </div>
-      </div>
-
-      {/* Contact & Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-[var(--card-border)]">
-        <div className="space-y-6">
-          <h3 className="text-xl font-bold text-[rgb(var(--text-primary))]">Connect with Us</h3>
-          <div className="space-y-4">
-            <ContactInfo
-              icon={<MapPin size={18} />}
-              text="Horizon Chowk, Butwal-11 Rupandehi, Nepal"
-            />
-            <div className="flex flex-wrap gap-3">
-              <SocialLink
-                icon={<Phone size={18} />}
-                href="tel:+9779842977207"
-              />
-              <SocialLink
-                icon={<Mail size={18} />}
-                href="mailto:info@sajilodigital.com.np?subject=SajiloQuiz&cc=cc@email.com&body=I want to contact you from sajilo quiz app."
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <SocialLink
-              icon={<Instagram size={18} />}
-              href="https://www.instagram.com/sajilo_digital"
-            />
-            <SocialLink
-              icon={<Facebook size={18} />}
-              href="https://www.facebook.com/profile.php?id=61579846778258"
-            />
-            <SocialLink
-              icon={<Github size={18} />}
-              href="https://github.com/sajhilodigital"
-            />
-            <SocialLink
-              icon={<Youtube size={18} />}
-              href="https://www.youtube.com/@sajilo_digital"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <h3 className="text-xl font-bold text-[rgb(var(--text-primary))]">Sajilo Terminal</h3>
-          <div className="p-6 rounded-xl bg-[var(--fill)] border border-[var(--card-border)] font-mono text-sm space-y-1 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Terminal size={60} />
-            </div>
-            <div className="text-[rgb(var(--color-primary))] text-xs">
-              SajiloDigital Pvt. Ltd
-            </div>
-            <div className="text-[rgb(var(--text-secondary))] text-[10px]">
-              Architecture: verified_valid
-            </div>
-            <div className="text-[rgb(var(--text-secondary))] mt-4 text-xs">$ status</div>
-            <div className="text-[rgb(var(--success))] text-xs animate-pulse">
-              &gt;&gt; OPTIMIZED
-            </div>
-          </div>
-          <a
-            href="https://sajilodigital.com.np"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/30 hover:bg-[rgb(var(--color-primary))]/20 transition-all text-[rgb(var(--text-primary))] font-bold group"
-          >
-            Visit Official Website
-            <ExternalLink
-              size={18}
-              className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
-            />
-          </a>
-        </div>
-      </div>
-      <div className="pt-8 text-center space-y-4">
+      {/* Legal */}
+      <div className="pt-6 border-t border-[var(--separator)] text-center space-y-4">
         <div className="flex items-center justify-center gap-6 text-sm">
           <Link
             to="/privacy"
@@ -1703,59 +2028,9 @@ function AboutCompany() {
             Question Grid
           </Link>
         </div>
-        <div>
-          <License />
-        </div>
+        <License />
       </div>
     </div>
-  );
-}
-
-function ServiceCard({
-  icon,
-  title,
-  desc,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div className="p-5 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-[rgb(var(--color-primary))]/30 transition-all group hover:scale-[1.02] shadow-sm">
-      <div className="w-10 h-10 rounded-lg bg-[rgb(var(--color-primary))]/10 flex items-center justify-center text-[rgb(var(--color-primary))] mb-4 group-hover:scale-110 group-hover:bg-[rgb(var(--color-primary))]/20 transition-all shadow-inner">
-        {icon}
-      </div>
-      <h4 className="font-bold text-[rgb(var(--text-primary))] mb-2 text-sm">
-        {title}
-      </h4>
-      <p className="text-[rgb(var(--text-secondary))] text-[11px] leading-relaxed">
-        {desc}
-      </p>
-    </div>
-  );
-}
-
-function ContactInfo({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="flex items-center gap-4 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors group cursor-pointer">
-      <div className="w-8 h-8 rounded-lg bg-[var(--fill)] flex items-center justify-center text-[rgb(var(--color-primary))] group-hover:bg-[rgb(var(--color-primary))]/20 group-hover:text-[rgb(var(--color-primary))] transition-all">
-        {icon}
-      </div>
-      <span className="text-[11px] font-medium tracking-wide">{text}</span>
-    </div>
-  );
-}
-
-function SocialLink({ icon, href }: { icon: React.ReactNode; href: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="p-3 rounded-xl bg-[var(--fill)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--color-primary))]/20 hover:border-[rgb(var(--color-primary))]/50 transition-all hover:-translate-y-1"
-    >
-      {icon}
-    </a>
   );
 }
 
@@ -1780,7 +2055,7 @@ function ShortcutItem({
 
 function SectionTitle({ title }: { title: string }) {
   return (
-    <h3 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-4 border-b border-[var(--card-border)] pb-2">
+    <h3 className="text-lg font-bold text-[rgb(var(--text-primary))] mb-5 border-b border-[var(--separator)] pb-2.5">
       {title}
     </h3>
   );
@@ -1806,13 +2081,13 @@ function InputGroup({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded px-3 py-2 text-[rgb(var(--text-primary))] focus:border-[rgb(var(--color-primary))] outline-none transition-colors"
+        className="ios-input px-3 py-2"
       />
     </div>
   );
 }
 
-function Checkbox({
+function Toggle({
   label,
   checked,
   onChange,
@@ -1822,15 +2097,24 @@ function Checkbox({
   onChange: (c: boolean) => void;
 }) {
   return (
-    <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-[var(--fill)] rounded select-none">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="ios-checkbox"
-        aria-label={label || undefined}
-      />
-      <span className="text-sm text-[rgb(var(--text-secondary))]">{label}</span>
+    <label
+      className={`flex items-center gap-3 cursor-pointer select-none transition-colors ${
+        label ? "px-4 py-3 justify-between hover:bg-[var(--fill)]" : ""
+      }`}
+    >
+      {label && (
+        <span className="text-sm text-[rgb(var(--text-primary))]">{label}</span>
+      )}
+      <span className="relative inline-flex shrink-0">
+        <input
+          type="checkbox"
+          role="switch"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="ios-switch"
+          aria-label={label || undefined}
+        />
+      </span>
     </label>
   );
 }
@@ -1969,7 +2253,8 @@ function bufferToWav(buffer: AudioBuffer) {
 }
 
 function TeamManagement() {
-  const { teams, addTeam, deleteTeam } = useData();
+  const { teams, addTeam, renameTeam, deleteTeam } = useData();
+  const dialog = useDialog();
   const [newTeamName, setNewTeamName] = useState("");
 
   const handleAdd = () => {
@@ -1977,6 +2262,31 @@ function TeamManagement() {
       addTeam(newTeamName.trim());
       setNewTeamName("");
     }
+  };
+
+  const handleRename = async (id: string, current: string) => {
+    const name = await dialog.prompt({
+      title: "Rename Team",
+      label: "Team Name",
+      initial: current,
+      placeholder: "Enter team name...",
+      confirmLabel: "Save",
+      cancelLabel: "Cancel",
+    });
+    if (name && name.trim() && name.trim() !== current) {
+      renameTeam(id, name.trim());
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await dialog.confirm({
+      title: "Delete Team",
+      message: `Remove "${name}" from the scoreboard? This cannot be undone.`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (ok) deleteTeam(id);
   };
 
   return (
@@ -1995,7 +2305,7 @@ function TeamManagement() {
               value={newTeamName}
               onChange={(e) => setNewTeamName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded px-4 py-2.5 text-[rgb(var(--text-primary))] focus:border-[rgb(var(--color-primary))] outline-none transition-colors"
+              className="w-full ios-input px-4 py-2.5"
             />
           </div>
           <button
@@ -2020,12 +2330,26 @@ function TeamManagement() {
               className="p-4 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] flex items-center justify-between group hover:border-[rgb(var(--color-primary))]/30 transition-all"
             >
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-[rgb(var(--text-primary))] truncate">{team.name}</h3>
+                <button
+                  onClick={() => handleRename(team.id, team.name)}
+                  className="w-full text-left group flex items-center gap-2 font-bold text-[rgb(var(--text-primary))] truncate"
+                  title="Rename team"
+                >
+                  <span className="truncate">{team.name}</span>
+                  <Edit2 size={14} className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0 text-[rgb(var(--text-secondary))]" />
+                </button>
                 <p className="text-sm text-[rgb(var(--color-primary))] font-black tracking-wider mt-1">Score: {team.score}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => deleteTeam(team.id)}
+                  onClick={() => handleRename(team.id, team.name)}
+                  className="p-2 text-[rgb(var(--text-secondary))] hover:bg-[rgb(var(--color-primary))]/10 hover:text-[rgb(var(--color-primary))] rounded-lg transition-colors"
+                  title="Rename Team"
+                >
+                  <Edit2 size={18} />
+                </button>
+                <button
+                  onClick={() => handleDelete(team.id, team.name)}
                   className="p-2 text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger))]/10 rounded-lg transition-colors"
                   title="Remove Team"
                 >

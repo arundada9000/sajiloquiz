@@ -43,6 +43,8 @@ A free, offline-first quiz presentation app for running live events. Build quest
 - **Keyboard shortcuts and gestures:** press ? to see the full list. Touch devices get swipe and double-tap gestures.
 - **Admin dashboard:** manage questions, configure rounds, brand the app, control themes and sounds, and back up your data.
 - **Quick Peek:** press Q on any question for an overview grid of every question.
+- **Random + Snap:** press R to jump to a random unvisited question, or X to "snap" away all visited questions (Thanos-style dust animation).
+- **Mark for review:** press M on any question to bookmark it (e.g. ambiguity). Marked questions get an amber badge on the grid.
 - **Rounds:** group questions into rounds (Rapid Fire, General, etc.) or use a standard grid.
 - **Multimedia:** embed images (auto-compressed to 800px JPEG) and audio (auto-converted to mono 16 kHz WAV).
 - **Team scoreboard:** the sidebar tracks team scores as you call answers.
@@ -101,6 +103,8 @@ npm run preview
 | **Alt + Click** | Re-open a visited question |
 | **Double-click** | Open a question from the grid |
 | **Right-click** | Open the quick actions menu |
+| **R** | Open a random unvisited question |
+| **X** | Snap away all visited questions |
 
 **Question page**
 
@@ -111,6 +115,7 @@ npm run preview
 | **Q** | Open quick peek overview |
 | **T** | Start / pause timer |
 | **R** | Reset timer |
+| **M** | Mark / unmark the question |
 | **+** / **]** | Increase text size |
 | **-** / **[** | Decrease text size |
 | **0** | Reset text size |

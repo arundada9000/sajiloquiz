@@ -4,18 +4,16 @@
 
 :root {
   /* --- iOS HIG Semantic Color Tokens (set per-theme by theme.ts) --- */
-  /* Light (paper/slate-light) defaults for the first paint before JS applies */
+  /* Defaults for first paint before JS applies the active theme */
   --color-primary: 60, 60, 67;
   --color-secondary: 94, 94, 105;
   --color-accent: 44, 44, 50;
   --tint: 94, 94, 105;
   --tint-secondary: 94, 94, 105;
   --tint-tertiary: 44, 44, 50;
-
-  /* Adaptive system backgrounds */
-  --system-background: 242, 242, 247;
-  --grouped-background: 255, 255, 255;
-  --secondary-background: 242, 242, 247;
+  --success: 52, 199, 89;
+  --danger: 255, 59, 48;
+  --warning: 255, 149, 0;
 
   /* Adaptive labels */
   --label: 17, 17, 20;
@@ -29,30 +27,15 @@
   --separator: rgba(60, 60, 67, 0.14);
   --fill: rgba(60, 60, 67, 0.06);
 
-  /* Legacy aliases (kept for compatibility) */
+  /* Surface aliases (set by theme.ts) */
   --bg-base: 242, 242, 247;
   --bg-elevated: 255, 255, 255;
   --text-primary: 17, 17, 20;
   --text-secondary: 104, 104, 112;
-  --text-contrast: 255, 255, 255;
   --card-bg: rgba(255, 255, 255, 0.94);
   --card-border: rgba(60, 60, 67, 0.15);
   --card-shadow: rgba(60, 60, 67, 0.12);
 
-  --bg-color: rgb(var(--bg-base));
-  --text-main: rgb(var(--text-primary));
-  --text-muted: rgb(var(--text-secondary));
-  --primary: rgb(var(--color-primary));
-  --primary-glow: rgb(var(--color-secondary));
-  --accent: rgb(var(--color-accent));
-  --glass-bg: var(--material-regular);
-  --glass-border: var(--separator);
-  --grid-gap: 1rem;
-}
-
-/* Legacy light-mode overrides (kept for compatibility) */
-[data-theme-mode="light"] {
-  --card-shadow: rgba(60, 60, 67, 0.12);
   --glass-bg: var(--material-regular);
   --glass-border: var(--separator);
 }
@@ -173,7 +156,7 @@ button {
   background: rgb(var(--color-primary));
   color: rgb(var(--label-inverse));
   padding: 0.75rem 1.5rem;
-  border-radius: 14px;
+  border-radius: 16px;
   font-weight: 600;
   transition: transform 0.12s ease, box-shadow 0.3s ease, filter 0.3s ease, background 0.2s ease;
   box-shadow: 0 4px 20px rgba(var(--color-primary), 0.3);
@@ -193,7 +176,7 @@ button {
   color: rgb(var(--text-primary));
   border: 1px solid var(--separator);
   padding: 0.75rem 1.5rem;
-  border-radius: 14px;
+  border-radius: 16px;
   font-weight: 500;
   transition: background-color 0.25s ease, color 0.25s ease;
 }
@@ -249,57 +232,152 @@ button {
 }
 
 /* ============================================================
-   Visited question cell
-   A glanceable "already opened" state: muted tint, a soft ring,
-   and a small checkmark badge in the corner.
+   Visited question cell (iOS HIG)
+   A clean "answered" state: soft success-tinted glass tile with
+   a hairline success border and a crisp circular checkmark badge
+   in the corner, exactly like iOS completion affordances.
    ============================================================ */
 .cell-visited {
   background:
-    linear-gradient(145deg, color-mix(in srgb, rgb(var(--success)) 10%, var(--card-bg)), var(--card-bg));
+    color-mix(in srgb, rgb(var(--success)) 10%, var(--material-regular));
   border-color: color-mix(in srgb, rgb(var(--success)) 34%, transparent);
-  color: color-mix(in srgb, rgb(var(--text-primary)) 78%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, rgb(var(--success)) 12%, transparent);
+  color: rgb(var(--text-primary));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, rgb(var(--success)) 10%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .cell-visited:hover,
 .cell-visited:focus-visible {
-  color: rgb(var(--text-primary));
   border-color: rgb(var(--color-primary));
-  box-shadow: 0 0 20px rgba(var(--color-primary), 0.35);
+  box-shadow: 0 0 20px rgba(var(--color-primary), 0.25);
 }
 
-/* Checkmark badge (clock-style, top-right) */
+/* Circular checkmark badge (fresh, non-text glyph) */
 .cell-visited-badge {
   position: absolute;
-  top: 0.3rem;
-  right: 0.3rem;
-  width: 1.05rem;
-  height: 1.05rem;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 1.4rem;
+  height: 1.4rem;
   border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgb(var(--success));
-  color: var(--label-inverse);
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  color: rgb(var(--label-inverse));
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.25);
+  animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Subtle diagonal "used" sheen across the cell */
-.cell-visited::before {
-  content: "";
+@keyframes badge-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   Bookmark / mark badge (top-left, review marker)
+   A small amber bookmark for questions flagged for ambiguity or
+   another reason. Distinct from the visited checkmark.
+   ============================================================ */
+.cell-mark-badge {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.4rem;
+  background: rgb(var(--warning));
+  color: rgb(var(--label-inverse));
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.25);
+  animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ============================================================
+   Thanos snap: visited cards crumble to dust, then fade away.
+   ============================================================ */
+@keyframes cell-dust {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: blur(0px) grayscale(0);
+  }
+  30% {
+    transform: scale(1.15) rotate(1.5deg);
+    opacity: 0.9;
+    filter: blur(1px) grayscale(0.4);
+  }
+  60% {
+    transform: scale(0.85) translateY(-6px) rotate(-1deg);
+    opacity: 0.5;
+    filter: blur(3px) grayscale(0.7);
+  }
+  100% {
+    transform: scale(0.4) translateY(-24px) rotate(3deg);
+    opacity: 0;
+    filter: blur(6px) grayscale(1);
+  }
+}
+
+.cell-dusting,
+.cell-dusting .cell-visited-badge,
+.cell-dusting .cell-mark-badge {
+  animation: cell-dust 1.2s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  pointer-events: none;
+  user-select: none;
+}
+
+@keyframes snap-flash {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.snap-flash {
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  background:
-    repeating-linear-gradient(
-      -45deg,
-      transparent 0 6px,
-      color-mix(in srgb, rgb(var(--success)) 5%, transparent) 6px 12px
-    );
-  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(var(--color-primary), 0.55),
+    rgba(var(--color-primary), 0.1) 40%,
+    transparent 70%
+  );
+  animation: snap-flash 1.2s ease-out forwards;
+}
+
+@keyframes snap-text {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); letter-spacing: 0.3em; }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  30% { transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+.snap-text {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  font-size: clamp(4rem, 18vw, 9rem);
+  font-weight: 900;
+  color: rgb(var(--label-inverse));
+  text-shadow:
+    0 0 30px rgba(var(--color-primary), 0.9),
+    0 0 60px rgba(var(--color-primary), 0.6),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+  animation: snap-text 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
 /* ============================================================
@@ -386,8 +464,8 @@ button {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  background: rgb(var(--label-inverse));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   transition: transform 0.25s cubic-bezier(0.3, 0.9, 0.3, 1.15);
 }
 .ios-switch:checked {
@@ -401,7 +479,7 @@ button {
 .ios-input {
   background: var(--fill);
   border: 1px solid var(--separator);
-  border-radius: 10px;
+  border-radius: 12px;
   color: rgb(var(--text-primary));
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -412,4 +490,103 @@ button {
 }
 .ios-input::placeholder {
   color: color-mix(in srgb, rgb(var(--text-secondary)) 70%, transparent);
+}
+
+/* ============================================================
+   Utility classes for theme-aware components
+   ============================================================ */
+
+/* Tint backgrounds (use with rgb(var(--color-primary)) for text) */
+.tint-bg {
+  background: rgba(var(--color-primary), 0.10);
+}
+.hover-tint {
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+.hover-tint:hover {
+  background: rgba(var(--color-primary), 0.10);
+}
+.tint-bg-strong {
+  background: rgba(var(--color-primary), 0.18);
+}
+.tint-border {
+  border-color: rgba(var(--color-primary), 0.30);
+}
+
+/* Score button presets */
+.score-correct {
+  background: rgba(var(--success), 0.10);
+  color: rgb(var(--success));
+  border: 1px solid rgba(var(--success), 0.25);
+}
+.score-correct:hover {
+  background: rgb(var(--success));
+  color: rgb(var(--label-inverse));
+}
+.score-bonus {
+  background: rgba(var(--color-primary), 0.15);
+  color: rgb(var(--color-primary));
+  border: 1px solid rgba(var(--color-primary), 0.25);
+}
+.score-bonus:hover {
+  background: rgb(var(--color-primary));
+  color: rgb(var(--label-inverse));
+}
+.score-penalty {
+  background: rgba(var(--danger), 0.15);
+  color: rgb(var(--danger));
+  border: 1px solid rgba(var(--danger), 0.25);
+}
+.score-penalty:hover {
+  background: rgb(var(--danger));
+  color: rgb(var(--label-inverse));
+}
+
+/* Keyboard key cap */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 0.15rem 0.4rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  color: rgb(var(--text-primary));
+  background: var(--fill);
+  border: 1px solid var(--separator);
+  border-radius: 6px;
+}
+
+/* Dropdown / popover surface */
+.dropdown-surface {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* Modal overlay backdrop */
+.overlay {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Micro-interaction: lift on hover */
+.hover-lift {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Micro-interaction: press scale */
+.press-scale {
+  transition: transform 0.1s ease;
+}
+.press-scale:active {
+  transform: scale(0.95);
 }

@@ -3,10 +3,11 @@ import {
     Home, Settings, Palette, Volume2, Download, RefreshCw,
     Maximize, Keyboard, Eye, Copy, Shuffle, Moon, Sun, Monitor,
     ChevronRight, CheckCircle2, Layout, MoreHorizontal,
-    Instagram, Facebook, Github, Youtube
+    BookOpen, Layers
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData, downloadJson } from '../context/DataContext';
+import { useQuiz } from '../context/QuizContext';
 import { sounds } from '../utils/sounds';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -24,7 +25,7 @@ type Props = {
     x: number;
     y: number;
     onClose: () => void;
-    pageType?: 'grid' | 'question';
+    pageType?: 'grid' | 'question' | 'general';
     questionText?: string;
     answerText?: string;
     onToggleAnswer?: () => void;
@@ -32,11 +33,12 @@ type Props = {
 };
 
 export default function ContextMenu({
-    x, y, onClose, pageType, questionText, answerText, onToggleAnswer, onQuickPeek
+    x, y, onClose, pageType = 'general', questionText, answerText, onToggleAnswer, onQuickPeek
 }: Props) {
     const navigate = useNavigate();
     const location = useLocation();
     const { appConfig, updateConfig, allQuestions } = useData();
+    const { visitedIds } = useQuiz();
     const menuRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ x, y });
     const [submenuSide, setSubmenuSide] = useState<'right' | 'left'>('right');
@@ -86,19 +88,22 @@ export default function ContextMenu({
     };
 
     const colorSchemes: MenuItem[] = [
-        { label: 'Purple', icon: <div className="w-3 h-3 rounded-full bg-purple-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'purple' } }), active: appConfig.theme.colorScheme === 'purple' },
-        { label: 'Indigo', icon: <div className="w-3 h-3 rounded-full bg-indigo-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'indigo' } }), active: appConfig.theme.colorScheme === 'indigo' },
-        { label: 'Ocean', icon: <div className="w-3 h-3 rounded-full bg-sky-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'blue' } }), active: appConfig.theme.colorScheme === 'blue' },
-        { label: 'Teal', icon: <div className="w-3 h-3 rounded-full bg-teal-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'teal' } }), active: appConfig.theme.colorScheme === 'teal' },
-        { label: 'Paper', icon: <div className="w-3 h-3 rounded-full bg-green-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'green' } }), active: appConfig.theme.colorScheme === 'green' },
-        { label: 'Sunset', icon: <div className="w-3 h-3 rounded-full bg-orange-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'orange' } }), active: appConfig.theme.colorScheme === 'orange' },
-        { label: 'Crimson', icon: <div className="w-3 h-3 rounded-full bg-red-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'red' } }), active: appConfig.theme.colorScheme === 'red' },
-        { label: 'Blush', icon: <div className="w-3 h-3 rounded-full bg-pink-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'pink' } }), active: appConfig.theme.colorScheme === 'pink' },
-        { label: 'Slate', icon: <div className="w-3 h-3 rounded-full bg-slate-500" />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'graphite' } }), active: appConfig.theme.colorScheme === 'graphite' },
+        { label: 'Purple', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#af52de' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'purple' } }), active: appConfig.theme.colorScheme === 'purple' },
+        { label: 'Indigo', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#5856d6' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'indigo' } }), active: appConfig.theme.colorScheme === 'indigo' },
+        { label: 'Blue', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#007aff' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'blue' } }), active: appConfig.theme.colorScheme === 'blue' },
+        { label: 'Teal', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#30b0c7' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'teal' } }), active: appConfig.theme.colorScheme === 'teal' },
+        { label: 'Green', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#34c759' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'green' } }), active: appConfig.theme.colorScheme === 'green' },
+        { label: 'Orange', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ff9500' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'orange' } }), active: appConfig.theme.colorScheme === 'orange' },
+        { label: 'Red', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ff3b30' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'red' } }), active: appConfig.theme.colorScheme === 'red' },
+        { label: 'Pink', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ff2d55' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'pink' } }), active: appConfig.theme.colorScheme === 'pink' },
+        { label: 'Cyan', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#32ade6' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'cyan' } }), active: appConfig.theme.colorScheme === 'cyan' },
+        { label: 'Slate', icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#8e8e93' }} />, action: () => updateConfig({ theme: { ...appConfig.theme, colorScheme: 'graphite' } }), active: appConfig.theme.colorScheme === 'graphite' },
     ];
 
     const menuItems: MenuItem[] = [
         { label: 'Go to Home', icon: <Home size={16} />, action: () => navigate('/'), disabled: location.pathname === '/' },
+        { label: 'User Guide', icon: <BookOpen size={16} />, action: () => navigate('/guide'), disabled: location.pathname === '/guide' },
+        { label: 'Journal', icon: <Layers size={16} />, action: () => navigate('/journal'), disabled: location.pathname.startsWith('/journal') },
         { label: 'Admin Panel', icon: <Settings size={16} />, action: () => navigate('/admin'), disabled: location.pathname === '/admin' },
         { divider: true },
         {
@@ -119,11 +124,12 @@ export default function ContextMenu({
                     action: () => window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))
                 },
                 ...(pageType === 'grid' ? [{
-                    label: 'Random Question',
+                    label: 'Random Question (unvisited)',
                     icon: <Shuffle size={14} />,
                     action: () => {
-                        if (allQuestions.length === 0) return;
-                        const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+                        const unvisited = allQuestions.filter(q => !visitedIds.includes(q.id));
+                        if (unvisited.length === 0) return;
+                        const randomQ = unvisited[Math.floor(Math.random() * unvisited.length)];
                         navigate(`/question/${randomQ.id}`);
                     }
                 }] : []),
@@ -247,14 +253,6 @@ export default function ContextMenu({
                     onMouseLeave={handleMouseLeave}
                     clearHoverTimeout={clearHoverTimeout}
                 />
-
-                {/* Social Links Row */}
-                <div className="flex items-center justify-around p-2 border-t border-[var(--card-border)] bg-[var(--card-bg)] rounded-b-xl">
-                    <SocialIcon icon={<Instagram size={14} />} href="https://www.instagram.com/sajilo_digital" />
-                    <SocialIcon icon={<Facebook size={14} />} href="https://www.facebook.com/profile.php?id=61579846778258" />
-                    <SocialIcon icon={<Github size={14} />} href="https://github.com/sajhilodigital" />
-                    <SocialIcon icon={<Youtube size={14} />} href="https://www.youtube.com/@sajilo_digital" />
-                </div>
             </motion.div>
         </AnimatePresence>
     );
@@ -304,14 +302,14 @@ function RenderItems({
                                 if (!hasSubmenu) onAction(item.action);
                             }}
                             disabled={item.disabled}
-                            className={`w-full px-4 py-1.5 flex items-center justify-between gap-3 text-sm transition-colors ${item.disabled ? 'text-gray-500/50' : 'text-[rgb(var(--text-secondary))] hover:bg-purple-500/10 hover:text-[rgb(var(--text-primary))]'
-                                } ${isHovered && hasSubmenu ? 'bg-purple-500/10 text-[rgb(var(--text-primary))]' : ''}`}
+                            className={`w-full px-4 py-1.5 flex items-center justify-between gap-3 text-sm transition-colors ${item.disabled ? 'text-[rgb(var(--text-secondary))]/50' : 'text-[rgb(var(--text-secondary))] hover-tint hover:text-[rgb(var(--text-primary))]'
+                                } ${isHovered && hasSubmenu ? 'tint-bg text-[rgb(var(--text-primary))]' : ''}`}
                         >
                             <div className="flex items-center gap-3">
                                 {item.icon}
                                 <span>{item.label}</span>
                             </div>
-                            {item.active && <CheckCircle2 size={12} className="text-purple-500" />}
+                            {item.active && <CheckCircle2 size={12} className="text-[rgb(var(--color-primary))]" />}
                             {hasSubmenu && <ChevronRight size={12} />}
                         </button>
 
@@ -342,22 +340,5 @@ function RenderItems({
                 );
             })}
         </div>
-    );
-}
-
-function SocialIcon({ icon, href }: { icon: React.ReactNode, href: string }) {
-    return (
-        <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => {
-                e.stopPropagation();
-                sounds.click();
-            }}
-            className="p-1.5 rounded-lg text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-purple-500/10 transition-all active:scale-95"
-        >
-            {icon}
-        </a>
     );
 }

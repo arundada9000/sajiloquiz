@@ -36,7 +36,7 @@ export const config: AppConfig = {
   // --- THEME CONFIGURATION ---
   theme: {
     mode: "dark",           // "light" | "dark" | "auto"
-    colorScheme: "purple",  // "purple" | "blue" | "green" | "red" | "orange" | "pink"
+    colorScheme: "purple",  // "purple" | "indigo" | "blue" | "teal" | "green" | "orange" | "red" | "pink" | "cyan" | "graphite" | "custom"
   },
 
   // --- SOUND CONFIGURATION ---
@@ -53,6 +53,7 @@ export const config: AppConfig = {
     warning: true,           // Warning alerts
     pass: true,              // Pass button
     fullscreen: true,        // Fullscreen toggle
+    snap: true,              // Snap/dust away visited questions (Thanos mode)
   },
 
   // --- UI & FONTS CONFIGURATION ---

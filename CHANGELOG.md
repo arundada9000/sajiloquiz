@@ -15,6 +15,13 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - Remove decorative gradients across backgrounds, buttons and titles for a
   cleaner iOS surface look.
 - Improved grid visited-cell affordance (checkmark badge + sheen).
+- Mark for review: bookmark any question (M key or button) for ambiguity
+  spotting; amber badge on grid and overview cells.
+- Random question: jump to a random unvisited question (R key or button).
+- Thanos snap: dust away all visited questions with an animation and a new
+  "Snap" sound (X key or button).
+- Editable team names in the admin Teams tab.
+- Confirmation dialogs for deleting teams and awarding/penalizing team points.
 
 ## [1.2.0] - 2026-08-31
 
