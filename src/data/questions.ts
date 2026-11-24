@@ -1,8 +1,4 @@
-export interface Question {
-  id: number;
-  text: string;
-  answer: string;
-}
+import type { Question } from "../context/DataContext";
 
 // EDIT THIS ARRAY TO ADD YOUR OWN QUESTIONS
 // To add more, just copy a block like { id: 51, text: "...", answer: "..." }, and paste it!
