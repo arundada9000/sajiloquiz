@@ -8,7 +8,7 @@ const sectionVariant = {
   show: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: 0.2 + i * 0.04, duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+    transition: { delay: 0.2 + i * 0.04, duration: 0.45, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
   }),
 };
 
@@ -28,7 +28,7 @@ export default function LegalLayout({
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
             className="glass-panel p-6 md:p-10"
           >
             <h1 className="text-3xl font-black mb-1 title-gradient">{title}</h1>
