@@ -56,7 +56,7 @@ function NavLink({ to, label, icon, end }: NavItem) {
 
 function FooterLink({ to, children, external }: { to: string; children: ReactNode; external?: boolean }) {
   const cls =
-    "relative inline-flex items-center gap-1.5 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors duration-300 group/link px-2 py-1 rounded-lg -mx-2";
+    "relative inline-flex items-center gap-1.5 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors duration-300 group/link px-2 py-1 rounded-lg -mx-2 hover:bg-[var(--fill)]";
   const inner = (
     <>
       {children}
@@ -66,9 +66,7 @@ function FooterLink({ to, children, external }: { to: string; children: ReactNod
     </>
   );
   if (external) {
-    return (
-      <a href={to} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
-    );
+    return <a href={to} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>;
   }
   return <Link to={to} className={cls}>{inner}</Link>;
 }
@@ -102,7 +100,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
     } else if (isIosSafari()) {
       dialog.toast("info", "Install Sajilo Quiz", "Tap the Share button in Safari, then choose Add to Home Screen.");
     } else {
-      dialog.toast("info", "Install Sajilo Quiz", "Installation is ready on Chrome, Edge or the installed app.");
+      dialog.toast("info", "Install Sajilo Quiz", "Installation is ready on Chrome, Edge or the installed app. Your browser did not offer it on this page - reload once to trigger the install prompt, or use the install icon in the address bar.");
     }
   };
 
@@ -120,7 +118,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         <div className="glass-panel !rounded-none border-x-0 border-t-0 backdrop-blur-xl">
           <div className="mx-auto max-w-7xl px-4 md:px-6 h-14 flex items-center justify-between gap-4">
             <Link to="/" className="flex items-center gap-2.5 group shrink-0" aria-label={`${site.name} home`}>
-              <img src="/icons/logo-192.png" alt={site.name} className="w-9 h-9 rounded-xl object-contain" />
+              <img src="/icons/logo-192.png" alt={site.name} className="w-9 h-9 rounded-xl object-contain shadow-[0_2px_8px_rgba(var(--color-primary),0.2)] group-hover:shadow-[0_2px_14px_rgba(var(--color-primary),0.4)] transition-shadow duration-300" />
               <span className="font-black text-lg title-gradient tracking-tight whitespace-nowrap">{appConfig.appName}</span>
             </Link>
             <nav className="flex items-center gap-1" aria-label="Primary">
@@ -130,34 +128,65 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <motion.main
-        key={pathname}
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -16 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
-        className="flex-1 flex flex-col"
-      >
+      <motion.main key={pathname} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }} className="flex-1 flex flex-col">
         {children}
       </motion.main>
 
       <footer className="relative border-t border-[var(--separator)] bg-[var(--fill)] backdrop-blur-md overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 md:px-6 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <motion.div custom={0} variants={col} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }} className="space-y-3">
-            <div className="flex items-center gap-2.5"><img src="/icons/logo-192.png" alt={site.name} className="w-9 h-9 rounded-xl" /><span className="font-black text-lg title-gradient">{site.name}</span></div>
-            <p className="text-sm text-[rgb(var(--text-secondary))]">{site.tagline}</p>
+            <div className="flex items-center gap-2.5">
+              <img src="/icons/logo-192.png" alt={site.name} className="w-9 h-9 rounded-xl object-contain shadow-sm hover:shadow-[0_2px_14px_rgba(var(--color-primary),0.3)] transition-shadow duration-300" />
+              <span className="font-black text-lg title-gradient">{site.name}</span>
+            </div>
+            <p className="text-sm text-[rgb(var(--text-secondary))] leading-relaxed">{site.tagline}</p>
+            <p className="text-xs text-[rgb(var(--text-secondary))] opacity-70">{site.companyName} &middot; {site.companyAddress}</p>
           </motion.div>
+
           <motion.div custom={1} variants={col} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }} className="space-y-3">
             <h3 className="text-xs uppercase tracking-widest font-bold text-[rgb(var(--color-primary))]">Explore</h3>
-            <ul className="space-y-2.5 text-sm"><li><FooterLink to="/">Question Grid</FooterLink></li><li><FooterLink to="/guide">User Guide</FooterLink></li><li><FooterLink to="/journal">Journal</FooterLink></li><li><FooterLink to="/faq">FAQ</FooterLink></li></ul>
+            <ul className="space-y-2.5 text-sm relative">
+              <li><FooterLink to="/">Question Grid</FooterLink></li>
+              <li><FooterLink to="/guide">User Guide</FooterLink></li>
+              <li><FooterLink to="/journal">Journal</FooterLink></li>
+              <li><FooterLink to="/faq">FAQ</FooterLink></li>
+              <li><button onClick={openTour} className="relative inline-flex items-center gap-1.5 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors duration-300 px-2 py-1 rounded-lg -mx-2"><Sparkles size={14} />Quick Tour</button></li>
+            </ul>
           </motion.div>
+
           <motion.div custom={2} variants={col} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }} className="space-y-3">
             <h3 className="text-xs uppercase tracking-widest font-bold text-[rgb(var(--color-primary))]">Resources</h3>
-            <ul className="space-y-2.5 text-sm"><li><FooterLink to="/privacy">Privacy Policy</FooterLink></li><li><FooterLink to="/terms">Terms of Use</FooterLink></li></ul>
+            <ul className="space-y-2.5 text-sm relative">
+              <li><FooterLink to="/guide#shortcuts">Keyboard Shortcuts</FooterLink></li>
+              <li><FooterLink to="/journal/data-format">Question JSON Format</FooterLink></li>
+              <li><FooterLink to="/privacy">Privacy Policy</FooterLink></li>
+              <li><FooterLink to="/terms">Terms of Use</FooterLink></li>
+            </ul>
           </motion.div>
+
           <motion.div custom={3} variants={col} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }} className="space-y-3">
             <h3 className="text-xs uppercase tracking-widest font-bold text-[rgb(var(--color-primary))]">Connect</h3>
-            <a href={`mailto:${site.author.email}`} className="text-sm">{site.author.email}</a>
+            <ul className="space-y-3">
+              <li><a href={site.author.portfolio} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] transition-all duration-300"><Globe size={15} /><span>Created by {site.author.name}</span></a></li>
+              <li><a href={`mailto:${site.author.email}`} className="inline-flex items-center gap-2 text-sm text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))] transition-all duration-300"><Mail size={15} /><span>{site.author.email}</span></a></li>
+            </ul>
+
+            <div className="pt-1">
+              <button onClick={handleInstallClick} className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${appInstalled ? "border border-[rgb(var(--success))]/40 bg-[rgb(var(--success))]/10 text-[rgb(var(--success))]" : "bg-[rgb(var(--color-primary))] text-[rgb(var(--label-inverse))] shadow-[0_2px_12px_rgba(var(--color-primary),0.35)]"}`}>
+                {appInstalled ? <><Sparkles size={15} /> Installed</> : <><Download size={15} /> Install App</>}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              {(Object.keys(site.author.socials) as SocialHandle[]).map((handle) => (
+                <a key={handle} href={site.author.socials[handle]} target="_blank" rel="noopener noreferrer" aria-label={handle === "x" ? "X (Twitter)" : handle.charAt(0).toUpperCase() + handle.slice(1)} className="p-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))]"><SocialIcon handle={handle} /></a>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-1.5"><span className="text-xs text-[rgb(var(--text-secondary))]">&copy; {new Date().getFullYear()} {site.author.name}</span><Heart size={11} className="text-[rgb(var(--danger))] fill-[rgb(var(--danger))] animate-pulse" /></div>
+              <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="p-2 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--color-primary))]" aria-label="Back to top"><ArrowUp size={14} /></button>
+            </div>
           </motion.div>
         </div>
       </footer>
