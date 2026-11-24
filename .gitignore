@@ -118,3 +118,5 @@ dist
 .pnp.*
 
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node
+# vite-plugin-pwa dev service worker output
+dev-dist/

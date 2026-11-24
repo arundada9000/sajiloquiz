@@ -23,9 +23,9 @@ export default function Privacy() {
       <Section title="1. Information stored on YOUR device">
         <p>
           {site.name} stores your questions, rounds, teams, scores and settings
-          locally in your browser using your device's built-in storage
-          (localStorage). This data stays on your device. We do not upload it to
-          any server.
+          locally in your browser using IndexedDB (your device's built-in
+          private storage). This data stays on your device. We do not upload it
+          to any server.
         </p>
       </Section>
 

@@ -11,18 +11,16 @@ import Terms from './pages/Terms';
 import UpdateDetector from './components/UpdateDetector';
 import SidebarScoreboard from './components/SidebarScoreboard';
 import ErrorBoundary from './components/ErrorBoundary';
+import GlobalContextMenu from './components/GlobalContextMenu';
+import PageSkeleton from './components/PageSkeleton';
+import Onboarding from './components/Onboarding';
 
-// AdminPage is the largest bundle; load it lazily to speed up first paint.
+// AdminPage + Guide/Journal pages are the largest bundles; load them lazily.
 const AdminPage = lazy(() => import('./pages/AdminPage'));
-
-// Small fullscreen loading fallback while a lazy chunk loads.
-function LoadingFallback() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 rounded-full border-2 border-[var(--separator)] border-t-[rgb(var(--color-primary))] animate-spin" />
-    </div>
-  );
-}
+const GuidePage = lazy(() => import('./pages/GuidePage'));
+const JournalIndexPage = lazy(() => import('./pages/JournalIndexPage'));
+const JournalArticlePage = lazy(() => import('./pages/JournalArticlePage'));
+const FaqPage = lazy(() => import('./pages/FaqPage'));
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -34,13 +32,45 @@ function AnimatedRoutes() {
         <Route
           path="/admin"
           element={
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={<PageSkeleton variant="admin" />}>
               <AdminPage />
             </Suspense>
           }
         />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route
+          path="/faq"
+          element={
+            <Suspense fallback={<PageSkeleton variant="content" />}>
+              <FaqPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/guide"
+          element={
+            <Suspense fallback={<PageSkeleton variant="content" />}>
+              <GuidePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/journal"
+          element={
+            <Suspense fallback={<PageSkeleton variant="content" />}>
+              <JournalIndexPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/journal/:slug"
+          element={
+            <Suspense fallback={<PageSkeleton variant="content" />}>
+              <JournalArticlePage />
+            </Suspense>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
@@ -64,6 +94,8 @@ function App() {
         <UpdateDetector />
         <SidebarScoreboard />
         <ScrollToTop />
+        <GlobalContextMenu />
+        <Onboarding />
         <AnimatedRoutes />
         <Offline />
       </ErrorBoundary>

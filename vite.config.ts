@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { site, pwaShortcuts } from "./src/config/site";
+import { faqItems } from "./src/data/faqs";
 
 // Tint value used across manifest/meta. RGB string -> hex.
 const themeHex = site.manifest.themeColor;
@@ -40,40 +41,14 @@ const ldFaq = JSON.stringify(
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: "Does Sajilo Quiz need an internet connection?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "No. It is an installable Progressive Web App. Once loaded, the whole quiz, including your questions, images and sounds, runs offline. That is exactly why it was built: quiz venues often have unreliable internet.",
-        },
+    mainEntity: faqItems.map((f) => ({
+      "@type": "Question",
+      name: f.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: f.answer,
       },
-      {
-        "@type": "Question",
-        name: "How do I add my own questions?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Open the Admin Panel from the home screen. You can create questions and rounds, attach images and audio, and everything is saved in your browser on your device.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Is my quiz data uploaded anywhere?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "No. Questions, scores and settings live in your browser's local storage on your own device. Nothing you create is sent to a server.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Is Sajilo Quiz free?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Yes, completely free. It was built for real quiz competitions and is shared so anyone can run a smooth quiz event with it.",
-        },
-      },
-    ],
+    })),
   },
   null,
   2,
@@ -128,6 +103,9 @@ function htmlInject(): Plugin {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${base}/</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
   <url><loc>${base}/#/admin</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
+  <url><loc>${base}/#/guide</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
+  <url><loc>${base}/#/journal</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
+  <url><loc>${base}/#/faq</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
   <url><loc>${base}/#/privacy</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
   <url><loc>${base}/#/terms</loc><lastmod>${new Date().toISOString().split("T")[0]}</lastmod></url>
 </urlset>
@@ -160,7 +138,10 @@ export default defineConfig({
     htmlInject(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.png", "192x192.png", "512x512.png", "og-image.png", "robots.txt", "sitemap.xml"],
+      includeAssets: ["icons/logo-favicon.png", "icons/logo-192.png", "icons/logo-512.png", "og-image.png", "robots.txt", "sitemap.xml"],
+      // Register the service worker in dev too, otherwise localhost:5173 is
+      // never installable (Chrome requires a SW to offer install).
+      devOptions: { enabled: true },
       manifest: {
         id: `${site.url}/`,
         name: site.name,
@@ -175,10 +156,10 @@ export default defineConfig({
       start_url: "/",
       scope: "/",
       icons: [
-        { src: "192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-        { src: "192x192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-        { src: "512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-        { src: "512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        { src: "icons/logo-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "icons/logo-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+        { src: "icons/logo-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "icons/logo-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
       ],
       shortcuts: pwaShortcuts as never,
     },

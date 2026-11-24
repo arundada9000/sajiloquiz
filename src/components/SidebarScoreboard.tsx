@@ -36,13 +36,13 @@ export default function SidebarScoreboard() {
           initial={{ x: 100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           onClick={toggleDrawer}
-          className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-[var(--card-bg)] border-l border-y border-[var(--card-border)] p-2 rounded-l-xl shadow-xl hover:bg-purple-500/10 transition-colors group hidden md:flex flex-col items-center gap-2"
+          className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-[var(--card-bg)] border-l border-y border-[var(--card-border)] p-2 rounded-l-xl shadow-xl hover-tint transition-colors group hidden md:flex flex-col items-center gap-2"
         >
           <ChevronLeft
-            className="text-[rgb(var(--text-secondary))] group-hover:text-purple-400"
+            className="text-[rgb(var(--text-secondary))] group-hover:text-[rgb(var(--color-primary))]"
             size={20}
           />
-          <div className="[writing-mode:vertical-lr] uppercase tracking-widest text-[10px] font-bold text-[rgb(var(--text-secondary))] group-hover:text-purple-400">
+          <div className="[writing-mode:vertical-lr] uppercase tracking-widest text-[10px] font-bold text-[rgb(var(--text-secondary))] group-hover:text-[rgb(var(--color-primary))]">
             Scoreboard
           </div>
         </motion.button>
@@ -51,7 +51,7 @@ export default function SidebarScoreboard() {
       {/* Mobile Toggle (bottom left) */}
       <button
         onClick={toggleDrawer}
-        className="fixed bottom-6 right-6 z-40 md:hidden w-12 h-12 rounded-full bg-purple-600 text-white shadow-2xl flex items-center justify-center active:scale-95 transition-transform"
+        className="fixed bottom-6 right-6 z-40 md:hidden w-12 h-12 rounded-full bg-[rgb(var(--color-primary))] text-[rgb(var(--label-inverse))] shadow-2xl flex items-center justify-center active:scale-95 transition-transform"
       >
         <Trophy size={24} />
       </button>
@@ -77,9 +77,9 @@ export default function SidebarScoreboard() {
               className="fixed right-0 top-0 h-full w-full max-w-[350px] bg-[var(--card-bg)] border-l border-[var(--card-border)] z-[60] shadow-2xl flex flex-col"
             >
               {/* Header */}
-              <div className="p-6 border-b border-[var(--card-border)] flex items-center justify-between bg-black/5">
+              <div className="p-6 border-b border-[var(--card-border)] flex items-center justify-between bg-[var(--fill)]">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400">
+                  <div className="p-2 rounded-lg tint-bg text-[rgb(var(--color-primary))]">
                     <Trophy size={20} />
                   </div>
                   <h2 className="text-xl font-bold text-[rgb(var(--text-primary))]">
@@ -88,7 +88,7 @@ export default function SidebarScoreboard() {
                 </div>
                 <button
                   onClick={toggleDrawer}
-                  className="p-2 hover:bg-white/5 rounded-full transition-colors text-[rgb(var(--text-secondary))]"
+                  className="p-2 hover:bg-[var(--fill)] rounded-full transition-colors text-[rgb(var(--text-secondary))]"
                 >
                   <X size={20} />
                 </button>
@@ -118,13 +118,13 @@ export default function SidebarScoreboard() {
                         key={team.id}
                         onClick={() => setActiveTeam(team.id)}
                         className={`relative group p-4 rounded-xl border transition-all cursor-pointer overflow-hidden ${activeTeamId === team.id
-                            ? "bg-purple-500/10 border-purple-500/40 shadow-lg shadow-purple-500/5 ring-1 ring-purple-500/20"
-                            : "bg-[var(--card-bg)] border-[var(--card-border)] hover:border-purple-500/30 hover:bg-purple-500/[0.02]"
+                            ? "tint-bg border-[rgb(var(--color-primary))]/40 shadow-lg shadow-[rgb(var(--color-primary))]/5 ring-1 ring-[rgb(var(--color-primary))]/20"
+                            : "bg-[var(--card-bg)] border-[var(--card-border)] hover:border-[rgb(var(--color-primary))]/30 hover:bg-[rgb(var(--color-primary))]/[0.02]"
                           }`}
                       >
                         {/* Selection Indicator */}
                         {activeTeamId === team.id && (
-                          <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
+                          <div className="absolute top-0 left-0 w-1 h-full bg-[rgb(var(--color-primary))]" />
                         )}
 
                         <div className="flex items-center justify-between mb-4">
@@ -146,7 +146,7 @@ export default function SidebarScoreboard() {
                               updateScore(team.id, config.scoring.correct);
                             }}
                             label={`+${config.scoring.correct}`}
-                            color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white"
+                            color="score-correct"
                           />
                           <ScoreButton
                             onClick={(e) => {
@@ -154,7 +154,7 @@ export default function SidebarScoreboard() {
                               updateScore(team.id, config.scoring.bonus);
                             }}
                             label={`+${config.scoring.bonus}`}
-                            color="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500 hover:text-white"
+                            color="score-bonus"
                           />
                           <ScoreButton
                             onClick={(e) => {
@@ -166,7 +166,7 @@ export default function SidebarScoreboard() {
                                 ? `+${config.scoring.penalty}`
                                 : config.scoring.penalty.toString()
                             }
-                            color="bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white"
+                            color="score-penalty"
                           />
                         </div>
                       </motion.div>
@@ -175,16 +175,14 @@ export default function SidebarScoreboard() {
               </div>
 
               {/* Footer / Stats */}
-              <div className="p-6 bg-black/10 border-t border-[var(--card-border)] space-y-4">
+              <div className="p-6 bg-[var(--fill)] border-t border-[var(--card-border)] space-y-4">
                 <div className="flex justify-between items-center text-xs text-[rgb(var(--text-secondary))] font-bold uppercase tracking-widest">
                   <span>Total Teams</span>
                   <span>{teams.length}</span>
                 </div>
-                <div className="text-[10px] text-gray-500 leading-relaxed">
+                <div className="text-[10px] text-[rgb(var(--text-secondary))] leading-relaxed">
                   Tip: Press{" "}
-                  <kbd className="bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
-                    S
-                  </kbd>{" "}
+                  <kbd className="kbd">S</kbd>{" "}
                   to toggle this scoreboard anywhere. Click a team to set as
                   "Active" for auto-scoring.
                 </div>

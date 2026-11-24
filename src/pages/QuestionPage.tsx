@@ -18,31 +18,38 @@ import {
   X,
   Users,
   ChevronDown,
+  Check,
+  Bookmark,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useData } from "../context/DataContext";
 import { useQuiz } from "../context/QuizContext";
 import { sounds } from "../utils/sounds";
 import ShortcutsModal from "../components/ShortcutsModal";
-import ContextMenu from "../components/ContextMenu";
+import { setQuestionMenuData } from "../utils/contextMenuStore";
+import { useDialog } from "../context/DialogContext";
+import { speakText, cancelSpeech, isSpeechSupported } from "../utils/speech";
 
 export default function QuestionPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { appConfig: config, allQuestions: questions } = useData();
+  const { appConfig: config, allQuestions: questions, activeRounds, activeEnableRounds } = useData();
   const questionId = Number(id);
   const question = questions.find((q) => q.id === questionId);
 
   // Determine Round Title
   let roundTitle = "";
-  if (config.enableRounds) {
-    const activeRound = config.rounds.find(
+  if (activeEnableRounds) {
+    const activeRound = activeRounds.find(
       (r) => questionId >= r.range[0] && questionId <= r.range[1],
     );
     if (activeRound) roundTitle = activeRound.title;
   }
 
   const [showAnswer, setShowAnswer] = useState(false);
-  const { markAsVisited, visitedIds } = useQuiz();
+  const { markAsVisited, visitedIds, markedIds, toggleMark, dustedIds } = useQuiz();
+  const isMarked = markedIds.includes(questionId);
 
   // Dynamic Font Scaling
   const MIN_SCALE = 0.5;
@@ -57,14 +64,11 @@ export default function QuestionPage() {
   // Quick Peek State
   const [showQuickPeek, setShowQuickPeek] = useState(false);
 
+  // Text-to-speech State
+  const [isSpeakingQ, setIsSpeakingQ] = useState(false);
+
   // Shortcuts Modal State
   const [showShortcuts, setShowShortcuts] = useState(false);
-
-  // Context Menu State
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
 
   // Fullscreen Toggle Handler
   const toggleFullscreen = useCallback(() => {
@@ -155,6 +159,35 @@ export default function QuestionPage() {
       setIsActive(false);
     }
   }, [config.timer.passDuration, config.timer.autoStartOnPass]);
+
+  // Read the question (and answer, if revealed) aloud using speech synthesis.
+  const handleReadAloud = useCallback(() => {
+    if (!question || !isSpeechSupported()) return;
+    if (isSpeakingQ) {
+      cancelSpeech();
+      setIsSpeakingQ(false);
+      return;
+    }
+    const text = showAnswer
+      ? `Question ${question.id}. ${question.text}. Answer. ${question.answer}`
+      : `Question ${question.id}. ${question.text}`;
+    sounds.click();
+    if (speakText(text, { onEnd: () => setIsSpeakingQ(false) })) {
+      setIsSpeakingQ(true);
+    }
+  }, [question, showAnswer, isSpeakingQ]);
+
+  // Stop speech when navigating away or changing question.
+  useEffect(() => {
+    cancelSpeech();
+    setIsSpeakingQ(false);
+  }, [questionId]);
+
+  useEffect(() => {
+    return () => {
+      cancelSpeech();
+    };
+  }, []);
 
   // Previous / next question navigation (used by swipe + context menu).
   const goAdjacent = useCallback(
@@ -262,6 +295,11 @@ export default function QuestionPage() {
         setShowQuickPeek((prev) => !prev);
       }
 
+      // Mark/Bookmark Toggle (M key)
+      if (e.key.toLowerCase() === "m" && !e.altKey && !e.metaKey && !e.ctrlKey) {
+        toggleMark(questionId);
+      }
+
       // Shortcuts Modal Toggle (? key)
       if (e.key === "?") {
         e.preventDefault();
@@ -277,17 +315,22 @@ export default function QuestionPage() {
     showQuickPeek,
     toggleFullscreen,
     isFullscreen,
+    toggleMark,
+    questionId,
   ]);
 
-  // Context Menu Handler
+  // Register page-specific data for the global context menu.
   useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      setContextMenu({ x: e.clientX, y: e.clientY });
-    };
-    document.addEventListener("contextmenu", handleContextMenu);
-    return () => document.removeEventListener("contextmenu", handleContextMenu);
-  }, []);
+    if (question) {
+      setQuestionMenuData({
+        questionText: question.text,
+        answerText: question.answer,
+        onToggleAnswer: handleToggleAnswer,
+        onQuickPeek: () => setShowQuickPeek(true),
+      });
+    }
+    return () => setQuestionMenuData({});
+  }, [question, handleToggleAnswer]);
 
   if (!question) {
     return (
@@ -321,7 +364,7 @@ export default function QuestionPage() {
         aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
       >
         {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-        <span className="absolute -bottom-8 right-0 text-xs bg-black/80 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                <span className="absolute -bottom-8 right-0 text-xs bg-[var(--card-bg)] text-[rgb(var(--text-primary))] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-[var(--card-border)]">
           Press F
         </span>
       </button>
@@ -373,6 +416,53 @@ export default function QuestionPage() {
                   Q
                 </span>
               </button>
+
+              {/* Read Aloud Button */}
+              {isSpeechSupported() && (
+                <button
+                  onClick={handleReadAloud}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all group ${
+                    isSpeakingQ
+                      ? "bg-[rgb(var(--color-primary))]/20 border-[rgb(var(--color-primary))]/50 text-[rgb(var(--color-primary))] anim-pulse"
+                      : "bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[var(--fill)]"
+                  }`}
+                  title={isSpeakingQ ? "Stop reading aloud" : "Read question aloud"}
+                  aria-label={
+                    isSpeakingQ ? "Stop reading question aloud" : "Read question aloud"
+                  }
+                >
+                  {isSpeakingQ ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                  <span className="hidden md:inline text-sm">
+                    {isSpeakingQ ? "Stop" : "Read"}
+                  </span>
+                </button>
+              )}
+
+              {/* Mark/Bookmark Toggle Button */}
+              <button
+                onClick={() => {
+                  toggleMark(questionId);
+                  sounds.click();
+                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all group ${
+                  isMarked
+                    ? "bg-[rgb(var(--warning))]/15 border-[rgb(var(--warning))]/40 text-[rgb(var(--warning))]"
+                    : "bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[var(--fill)]"
+                }`}
+                title={`${isMarked ? "Unmark" : "Mark"} for review (M)`}
+                aria-label={isMarked ? "Remove mark (M)" : "Mark question (M)"}
+              >
+                <Bookmark
+                  size={16}
+                  fill={isMarked ? "currentColor" : "none"}
+                />
+                <span className="hidden md:inline text-sm">
+                  {isMarked ? "Marked" : "Mark"}
+                </span>
+                <span className="text-xs border border-[var(--card-border)] px-1 rounded opacity-50 hidden md:inline">
+                  M
+                </span>
+              </button>
             </div>
 
             {roundTitle && (
@@ -388,7 +478,7 @@ export default function QuestionPage() {
 
           <div className="flex flex-col items-start gap-8 relative group/scale">
             {/* Zoom Controls Overlay */}
-            <div className="absolute top-[-3rem] right-0 flex gap-1 bg-black/30 backdrop-blur-sm p-1 rounded-lg opacity-0 group-hover/scale:opacity-100 transition-opacity z-10 text-white">
+            <div className="absolute top-[-3rem] right-0 flex gap-1 bg-[var(--card-bg)]/80 backdrop-blur-sm p-1 rounded-lg opacity-0 group-hover/scale:opacity-100 transition-opacity z-10 text-[rgb(var(--text-primary))] border border-[var(--card-border)]">
               <button
                 onClick={() => setScale((s) => Math.max(s - SCALE_STEP, MIN_SCALE))}
                 className="p-1 hover:bg-[var(--fill)] rounded"
@@ -445,9 +535,11 @@ export default function QuestionPage() {
 
               {question.mediaType === "audio" && question.mediaUrl && (
                 <div className="mb-6 p-4 rounded-xl bg-[rgb(var(--color-primary))]/10 border border-[rgb(var(--color-primary))]/30 flex items-center gap-4">
-                  <div className="p-3 bg-[rgb(var(--color-primary))] rounded-full animate-pulse">
-                    <div className="w-6 h-6 border-b-2 border-white rounded-full animate-spin" />
-                    {/* Simple visualization icon placeholder */}
+                  <div className="flex gap-1 items-end h-8 px-3 py-2 bg-[rgb(var(--color-primary))] rounded-full">
+                    <span className="w-1 rounded-full bg-[rgb(var(--label-inverse))] animate-pulse" style={{ height: "40%" }} />
+                    <span className="w-1 rounded-full bg-[rgb(var(--label-inverse))] animate-pulse" style={{ height: "80%", animationDelay: "0.15s" }} />
+                    <span className="w-1 rounded-full bg-[rgb(var(--label-inverse))] animate-pulse" style={{ height: "60%", animationDelay: "0.3s" }} />
+                    <span className="w-1 rounded-full bg-[rgb(var(--label-inverse))] animate-pulse" style={{ height: "90%", animationDelay: "0.45s" }} />
                   </div>
                   <audio
                     controls
@@ -494,7 +586,7 @@ export default function QuestionPage() {
               className={`btn-primary flex items-center gap-2 text-lg px-8 py-4 ${showAnswer ? "" : ""}`}
               style={
                 showAnswer
-                  ? { background: "rgba(255,255,255,0.1)", boxShadow: "none" }
+                  ? { background: "rgba(var(--label-inverse), 0.1)", boxShadow: "none" }
                   : undefined
               }
               aria-pressed={showAnswer}
@@ -508,7 +600,7 @@ export default function QuestionPage() {
                   <Eye size={20} /> Reveal Answer
                 </>
               )}
-              <span className="text-xs border border-white/30 px-1 rounded ml-2 opacity-70 hidden md:inline">
+              <span className="kbd ml-2 opacity-70 hidden md:inline">
                 SPACE
               </span>
             </button>
@@ -650,9 +742,10 @@ export default function QuestionPage() {
 
               {/* Questions Grid */}
               <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 md:gap-3">
-                {questions.map((q) => {
+                {questions.filter(q => !dustedIds.includes(q.id)).map((q) => {
                   const isVisited = visitedIds.includes(q.id);
                   const isCurrent = q.id === questionId;
+                  const isMarked = markedIds.includes(q.id);
                   return (
                     <button
                       key={q.id}
@@ -671,16 +764,21 @@ export default function QuestionPage() {
                                                 ${isCurrent
                           ? "bg-[rgb(var(--color-primary))] border-[rgb(var(--color-primary))] text-[rgb(var(--label-inverse))] ring-2 ring-[rgb(var(--color-primary))] ring-offset-2 ring-offset-[rgb(var(--bg-elevated))]"
                           : isVisited
-                            ? "bg-[rgb(var(--danger))]/15 border-[rgb(var(--danger))]/15 text-[rgb(var(--danger))]/50 cursor-not-allowed"
+                            ? "cell-visited cursor-not-allowed"
                             : "bg-[var(--card-bg)] border-[var(--card-border)] text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--color-primary))]/10 hover:border-[rgb(var(--color-primary))]/50 hover:scale-105"
                         }
                                             `}
+                      title={isMarked ? `Question ${q.id} (marked for review)` : undefined}
                     >
+                      {isMarked && (
+                        <span className="cell-mark-badge" aria-hidden="true">
+                          <Bookmark size={10} fill="currentColor" />
+                        </span>
+                      )}
                       {isVisited && !isCurrent && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
-                          <div className="w-full h-[2px] bg-[rgb(var(--danger))]/50 rotate-45 absolute" />
-                          <div className="w-full h-[2px] bg-[rgb(var(--danger))]/50 -rotate-45 absolute" />
-                        </div>
+                        <span className="cell-visited-badge" aria-hidden="true">
+                          <Check size={12} strokeWidth={3.5} />
+                        </span>
                       )}
                       <span className="relative z-10">{q.id}</span>
                     </button>
@@ -710,18 +808,6 @@ export default function QuestionPage() {
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
       />
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onClose={() => setContextMenu(null)}
-          pageType="question"
-          questionText={question?.text}
-          answerText={question?.answer}
-          onToggleAnswer={handleToggleAnswer}
-          onQuickPeek={() => setShowQuickPeek(true)}
-        />
-      )}
     </div>
   );
 }
@@ -734,12 +820,29 @@ function QuickScorePanel() {
     setActiveTeam,
     updateScore,
   } = useData();
+  const dialog = useDialog();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const activeTeam = teams.find((t) => t.id === activeTeamId);
 
   if (teams.length === 0) return null;
 
   const scoring = config.scoring || { correct: 10, bonus: 5, penalty: -2 };
+
+  const confirmAward = async (value: number, danger: boolean) => {
+    if (!activeTeamId || !activeTeam) return;
+    const sign = value > 0 ? "+" : "";
+    const ok = await dialog.confirm({
+      title: `Award ${sign}${value} to ${activeTeam.name}?`,
+      message: `${sign}${value} points to ${activeTeam.name} (currently ${activeTeam.score})`,
+      confirmLabel: "Award",
+      cancelLabel: "Cancel",
+      danger,
+    });
+    if (ok) {
+      updateScore(activeTeamId, value);
+      sounds.click();
+    }
+  };
 
   return (
     <motion.div
@@ -776,14 +879,14 @@ function QuickScorePanel() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[110] bg-black/40 dark:bg-black/60 backdrop-blur-[2px]"
+                className="fixed inset-0 z-[110] overlay"
                 onClick={() => setIsDropdownOpen(false)}
               />
               <motion.div
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="absolute left-0 right-0 bottom-full mb-3 bg-white dark:bg-slate-900 border border-[rgb(var(--color-primary))]/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[120] overflow-hidden"
+                className="absolute left-0 right-0 bottom-full mb-3 bg-[var(--card-bg)] border border-[rgb(var(--color-primary))]/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[120] overflow-hidden"
               >
                 <div className="max-h-[250px] overflow-y-auto custom-scrollbar p-1.5">
                   <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-[rgb(var(--color-primary))] font-black opacity-80 border-b border-[rgb(var(--color-primary))]/10 mb-1">
@@ -804,7 +907,7 @@ function QuickScorePanel() {
                     >
                       <div className="flex items-center gap-3">
                         {activeTeamId === t.id && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-[rgb(var(--label-inverse))] animate-pulse" />
                         )}
                         <span className="font-bold truncate">{t.name}</span>
                       </div>
@@ -832,10 +935,7 @@ function QuickScorePanel() {
           sub="Correct"
           color="bg-[rgb(var(--success))]/10 text-[rgb(var(--success))] border border-[rgb(var(--success))]/25 hover:bg-[rgb(var(--success))] hover:text-white"
           disabled={!activeTeamId}
-          onClick={() => {
-            updateScore(activeTeamId!, scoring.correct);
-            sounds.click();
-          }}
+          onClick={() => confirmAward(scoring.correct, false)}
         />
         <ScoreActionButton
           label={
@@ -844,10 +944,7 @@ function QuickScorePanel() {
           sub="Bonus"
           color="bg-[rgb(var(--color-primary))]/15 text-[rgb(var(--color-primary))] border border-[rgb(var(--color-primary))]/25 hover:bg-[rgb(var(--color-primary))] hover:text-[rgb(var(--label-inverse))]"
           disabled={!activeTeamId}
-          onClick={() => {
-            updateScore(activeTeamId!, scoring.bonus);
-            sounds.click();
-          }}
+          onClick={() => confirmAward(scoring.bonus, false)}
         />
         <ScoreActionButton
           label={
@@ -858,10 +955,7 @@ function QuickScorePanel() {
           sub="Wrong"
           color="bg-[rgb(var(--danger))]/15 text-[rgb(var(--danger))] border border-[rgb(var(--danger))]/25 hover:bg-[rgb(var(--danger))] hover:text-white"
           disabled={!activeTeamId}
-          onClick={() => {
-            updateScore(activeTeamId!, scoring.penalty);
-            sounds.click();
-          }}
+          onClick={() => confirmAward(scoring.penalty, true)}
         />
       </div>
     </motion.div>
